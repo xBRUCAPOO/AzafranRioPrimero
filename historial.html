@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial de movimientos — Gestor de Clientes</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Raleway:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0"
+  />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Tuerca de ajustes: FIJA en la esquina superior derecha de la
+         pantalla en TODAS las páginas (index, perfil, historial) -->
+    <div class="settings-fixed">
+      <div class="control-wrap">
+        <button id="settingsToggle" class="icon-btn" aria-label="Abrir ajustes" aria-expanded="false">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+        <div id="settingsPanel" class="floating-panel floating-panel--right hidden">
+          <p class="floating-panel__title">Apariencia</p>
+          <div class="theme-switch">
+            <span class="material-symbols-outlined theme-switch__icon">dark_mode</span>
+            <label class="switch" aria-label="Cambiar entre modo oscuro y claro">
+              <input type="checkbox" id="themeCheckbox" />
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+            <span class="material-symbols-outlined theme-switch__icon">light_mode</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <header class="topbar topbar--perfil">
+      <button class="btn btn--ghost" onclick="window.location.href='index.html'">
+        <span class="material-symbols-outlined">arrow_back</span> Volver al listado
+      </button>
+      <h1 class="historial-title">Historial de movimientos</h1>
+    </header>
+
+    <main class="content">
+      <!-- Buscador (por nombre de cliente) + filtro (tipo de movimiento y fecha) -->
+      <div class="historial-toolbar">
+        <div class="search-box">
+          <span class="material-symbols-outlined search-box__icon">search</span>
+          <input
+            id="historialSearch"
+            class="search-box__input"
+            type="text"
+            placeholder="Buscar por nombre de cliente..."
+            autocomplete="off"
+          />
+          <button id="historialSearchClear" class="search-box__clear hidden" type="button" aria-label="Limpiar búsqueda">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="control-wrap">
+          <button id="historialFilterToggle" class="icon-btn" aria-label="Filtrar movimientos" aria-expanded="false">
+            <span class="material-symbols-outlined">filter_list</span>
+          </button>
+          <div id="historialFilterPanel" class="floating-panel floating-panel--right historial-filter-panel hidden">
+            <p class="floating-panel__title">Filtrar movimientos</p>
+            <label class="floating-panel__field">
+              <span>Tipo de movimiento</span>
+              <div class="select-wrap">
+                <select id="historialFilterTipo">
+                  <option value="todos">Todos</option>
+                  <option value="alta">Altas</option>
+                  <option value="edicion">Ediciones</option>
+                  <option value="baja">Bajas</option>
+                </select>
+                <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+              </div>
+            </label>
+            <label class="floating-panel__field">
+              <span>Fecha</span>
+              <input type="date" id="historialFilterFecha" />
+            </label>
+            <button id="historialFilterClear" class="text-btn">Limpiar filtros</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aviso que aparece solo si hay una búsqueda o un filtro activo -->
+      <p id="historialFilterNotice" class="filter-notice hidden">
+        <span class="material-symbols-outlined">filter_alt</span>
+        Estás viendo resultados filtrados.
+      </p>
+
+      <ul id="historialList" class="historial-list" aria-live="polite"></ul>
+      <p id="historialEmpty" class="empty-state hidden">
+        <span class="material-symbols-outlined">history_toggle_off</span>
+        Todavía no se registraron movimientos en este navegador.
+      </p>
+    </main>
+
+    <footer class="footer">
+      <span class="footer__brand">xBRUCAPOO</span>
+      <span class="footer__sep">·</span>
+      <span>v1.1.0</span>
+      <span class="footer__sep">·</span>
+      <span>Actualizado 31/08/2026</span>
+    </footer>
+  </div>
+
+  <script src="js/theme-switch.js"></script>
+  <script src="js/historial.js"></script>
+</body>
+</html>

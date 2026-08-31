@@ -19,40 +19,62 @@
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <div class="app">
+  <div class="app app--perfil">
+    <!-- Tuerca de ajustes: FIJA en la esquina superior derecha de la
+         pantalla en TODAS las páginas (index, perfil, historial) -->
+    <div class="settings-fixed">
+      <div class="control-wrap">
+        <button id="settingsToggle" class="icon-btn" aria-label="Abrir ajustes" aria-expanded="false">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+        <div id="settingsPanel" class="floating-panel floating-panel--right hidden">
+          <p class="floating-panel__title">Apariencia</p>
+          <div class="theme-switch">
+            <span class="material-symbols-outlined theme-switch__icon">dark_mode</span>
+            <label class="switch" aria-label="Cambiar entre modo oscuro y claro">
+              <input type="checkbox" id="themeCheckbox" />
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+            <span class="material-symbols-outlined theme-switch__icon">light_mode</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <header class="topbar topbar--perfil">
       <button class="btn btn--ghost" onclick="window.location.href='index.html'">
         <span class="material-symbols-outlined">arrow_back</span> Volver al listado
       </button>
     </header>
 
+    <!-- Los datos ya NO están dentro de un recuadro: quedan dispersos en
+         la página con tipografía más grande -->
     <main class="content perfil-content">
-      <div class="perfil-card">
-        <div class="perfil-card__header">
-          <span class="material-symbols-outlined perfil-card__icon" id="perfilSexIcon">face</span>
+      <div class="perfil-wrap">
+        <div class="perfil-header">
+          <span class="material-symbols-outlined perfil-header__icon" id="perfilSexIcon">face</span>
           <h1 id="perfilNombre">Cargando...</h1>
         </div>
 
         <!-- Cada dato tiene su propio botón de copiar individual -->
-        <div id="perfilGrid" class="view-grid"></div>
-        <div id="perfilCoowners" class="view-coowners"></div>
-
-        <div class="perfil-actions">
-          <!-- Copia TODOS los datos del perfil de una sola vez -->
-          <button type="button" id="copyAllBtn" class="btn btn--ghost">
-            <span class="material-symbols-outlined">content_copy</span> Copiar perfil completo
-          </button>
-          <div class="perfil-actions-right">
-            <button type="button" id="deleteBtn" class="btn btn--danger">
-              <span class="material-symbols-outlined">delete</span> Eliminar
-            </button>
-            <button type="button" id="editBtn" class="btn btn--primary">
-              <span class="material-symbols-outlined">edit</span> Editar
-            </button>
-          </div>
-        </div>
+        <div id="perfilGrid" class="perfil-grid"></div>
+        <div id="perfilCoowners" class="perfil-coowners"></div>
       </div>
     </main>
+
+    <!-- Barra de acciones FIJA arriba del footer: nunca se deja de ver,
+         aunque se scrollee toda la página -->
+    <div class="perfil-actions-bar">
+      <button type="button" id="copyAllBtn" class="btn btn--ghost">
+        <span class="material-symbols-outlined">content_copy</span> Copiar perfil completo
+      </button>
+      <button type="button" id="editBtn" class="btn btn--primary">
+        <span class="material-symbols-outlined">edit</span> Editar
+      </button>
+      <button type="button" id="deleteBtn" class="btn btn--danger">
+        <span class="material-symbols-outlined">delete</span> Eliminar
+      </button>
+    </div>
 
     <footer class="footer">
       <span class="footer__brand">xBRUCAPOO</span>
@@ -87,10 +109,19 @@
 
           <label class="field">
             <span>Sexo *</span>
-            <select id="f_sexo" required>
-              <option value="M">Hombre</option>
-              <option value="F">Mujer</option>
-            </select>
+            <!-- Switch Hombre/Mujer en vez de un <select>: sin marcar = Hombre,
+                 marcado = Mujer. El valor real que se guarda va en el input
+                 oculto #f_sexo, que actualiza js/perfil.js -->
+            <div class="sex-switch">
+              <span class="material-symbols-outlined sex-switch__icon sex-switch__icon--active" id="f_sexoIconM">face</span>
+              <label class="switch" aria-label="Cambiar entre Hombre y Mujer">
+                <input type="checkbox" id="f_sexoCheckbox" />
+                <span class="switch__track"><span class="switch__thumb"></span></span>
+              </label>
+              <span class="material-symbols-outlined sex-switch__icon" id="f_sexoIconF">face_3</span>
+              <span class="sex-switch__label" id="f_sexoLabel">Hombre</span>
+            </div>
+            <input type="hidden" id="f_sexo" value="M" required />
           </label>
 
           <label class="field">
@@ -127,14 +158,17 @@
 
           <label class="field">
             <span>Estado civil</span>
-            <select id="f_estadoCivil">
-              <option value="">Sin especificar</option>
-              <option value="Soltero/a">Soltero/a</option>
-              <option value="Casado/a">Casado/a</option>
-              <option value="Divorciado/a">Divorciado/a</option>
-              <option value="Viudo/a">Viudo/a</option>
-              <option value="Unión convivencial">Unión convivencial</option>
-            </select>
+            <div class="select-wrap">
+              <select id="f_estadoCivil">
+                <option value="">Sin especificar</option>
+                <option value="Soltero/a">Soltero/a</option>
+                <option value="Casado/a">Casado/a</option>
+                <option value="Divorciado/a">Divorciado/a</option>
+                <option value="Viudo/a">Viudo/a</option>
+                <option value="Unión convivencial">Unión convivencial</option>
+              </select>
+              <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+            </div>
           </label>
 
           <label class="field">
@@ -184,12 +218,14 @@
         <button type="button" id="confirmDeleteCancel" class="btn btn--ghost">Cancelar</button>
         <button type="button" id="confirmDeleteAccept" class="btn btn--danger">Sí, eliminar</button>
       </div>
+      <p class="confirm-card__hint">Esta acción es irreversible: los datos no se pueden recuperar.</p>
     </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
 
   <script src="js/api-clientes.js"></script>
+  <script src="js/theme-switch.js"></script>
   <script src="js/perfil.js"></script>
 </body>
 </html>

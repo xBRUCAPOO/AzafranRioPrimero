@@ -69,6 +69,9 @@
             placeholder="Buscar por nombre, DNI o mail..."
             autocomplete="off"
           />
+          <button id="searchClear" class="search-box__clear hidden" type="button" aria-label="Limpiar búsqueda">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
 
         <!-- Filtro por sexo y estado civil, al lado del buscador -->
@@ -80,17 +83,28 @@
             <p class="floating-panel__title">Filtrar clientes</p>
             <label class="floating-panel__field">
               <span>Sexo</span>
-              <select id="filterSexo">
-                <option value="todos">Todos</option>
-                <option value="M">Hombre</option>
-                <option value="F">Mujer</option>
-              </select>
+              <!-- Control segmentado en vez de <select>: al ser 3 opciones
+                   (Todos/Hombre/Mujer) no es un switch binario, pero se
+                   elige tocando en vez de abrir un desplegable -->
+              <div class="segmented" id="filterSexoSegmented" role="group" aria-label="Filtrar por sexo">
+                <button type="button" class="segmented__btn active" data-value="todos">Todos</button>
+                <button type="button" class="segmented__btn" data-value="M">
+                  <span class="material-symbols-outlined">face</span> Hombre
+                </button>
+                <button type="button" class="segmented__btn" data-value="F">
+                  <span class="material-symbols-outlined">face_3</span> Mujer
+                </button>
+              </div>
+              <input type="hidden" id="filterSexo" value="todos" />
             </label>
             <label class="floating-panel__field">
               <span>Estado civil</span>
-              <select id="filterEstadoCivil">
-                <option value="todos">Todos</option>
-              </select>
+              <div class="select-wrap">
+                <select id="filterEstadoCivil">
+                  <option value="todos">Todos</option>
+                </select>
+                <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+              </div>
             </label>
             <button id="filterClear" class="text-btn">Limpiar filtros</button>
           </div>
@@ -100,6 +114,11 @@
 
     <!-- Listado principal de clientes -->
     <main class="content">
+      <!-- Aviso que aparece solo si hay una búsqueda o un filtro activo -->
+      <p id="filterNotice" class="filter-notice hidden">
+        <span class="material-symbols-outlined">filter_alt</span>
+        Estás viendo resultados filtrados.
+      </p>
       <ul id="clientList" class="client-list" aria-live="polite"></ul>
       <p id="emptyState" class="empty-state hidden">
         <span class="material-symbols-outlined">person_search</span>
@@ -107,9 +126,10 @@
       </p>
     </main>
 
-    <!-- Botón flotante para agregar un nuevo cliente -->
-    <button id="addClientBtn" class="fab" aria-label="Agregar cliente">
-      <span class="material-symbols-outlined">add</span>
+    <!-- Botón para agregar un nuevo cliente: rectangular, con ícono + texto -->
+    <button id="addClientBtn" class="fab" aria-label="Registrar nuevo cliente">
+      <span class="material-symbols-outlined">person_add</span>
+      Registrar nuevo cliente
     </button>
 
     <!-- Footer discreto, abajo a la izquierda, con línea superior -->
@@ -145,10 +165,19 @@
 
           <label class="field">
             <span>Sexo *</span>
-            <select id="f_sexo" required>
-              <option value="M">Hombre</option>
-              <option value="F">Mujer</option>
-            </select>
+            <!-- Switch Hombre/Mujer en vez de un <select>: sin marcar = Hombre,
+                 marcado = Mujer. El valor real que se guarda va en el input
+                 oculto #f_sexo, que actualiza js/app.js -->
+            <div class="sex-switch">
+              <span class="material-symbols-outlined sex-switch__icon sex-switch__icon--active" id="f_sexoIconM">face</span>
+              <label class="switch" aria-label="Cambiar entre Hombre y Mujer">
+                <input type="checkbox" id="f_sexoCheckbox" />
+                <span class="switch__track"><span class="switch__thumb"></span></span>
+              </label>
+              <span class="material-symbols-outlined sex-switch__icon" id="f_sexoIconF">face_3</span>
+              <span class="sex-switch__label" id="f_sexoLabel">Hombre</span>
+            </div>
+            <input type="hidden" id="f_sexo" value="M" required />
           </label>
 
           <label class="field">
@@ -185,14 +214,17 @@
 
           <label class="field">
             <span>Estado civil</span>
-            <select id="f_estadoCivil">
-              <option value="">Sin especificar</option>
-              <option value="Soltero/a">Soltero/a</option>
-              <option value="Casado/a">Casado/a</option>
-              <option value="Divorciado/a">Divorciado/a</option>
-              <option value="Viudo/a">Viudo/a</option>
-              <option value="Unión convivencial">Unión convivencial</option>
-            </select>
+            <div class="select-wrap">
+              <select id="f_estadoCivil">
+                <option value="">Sin especificar</option>
+                <option value="Soltero/a">Soltero/a</option>
+                <option value="Casado/a">Casado/a</option>
+                <option value="Divorciado/a">Divorciado/a</option>
+                <option value="Viudo/a">Viudo/a</option>
+                <option value="Unión convivencial">Unión convivencial</option>
+              </select>
+              <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+            </div>
           </label>
 
           <label class="field">
@@ -235,8 +267,10 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- api-clientes.js debe cargarse ANTES que app.js: contiene las
-       funciones de la API, el modo demo y el registro de historial -->
+       funciones de la API, el modo demo, el toast y el registro de historial -->
   <script src="js/api-clientes.js"></script>
+  <!-- theme-switch.js: tuerca de ajustes / tema, compartida en las 3 páginas -->
+  <script src="js/theme-switch.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

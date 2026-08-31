@@ -1,15 +1,12 @@
 /*
  * app.js
  * Lógica de la página principal "Gestor de Clientes" (listado).
- * Las llamadas a la API, el modo demo (datos de prueba) y el registro de
- * historial viven en api-clientes.js, que se carga ANTES que este archivo.
  *
- * CAMBIO: al hacer clic en un cliente ya no se abre un modal de solo
- * lectura; ahora se navega de página completa a perfil.html?id=... con el
- * detalle de ese cliente (ahí también vive el botón "Editar").
+ * La tuerca de ajustes (tema claro/oscuro) vive en theme-switch.js, y las
+ * llamadas a la API + el modo demo + el toast + el historial viven en
+ * api-clientes.js. Ambos se cargan ANTES que este archivo.
  */
 
-const THEME_KEY = "gestorClientes_tema"; // Esto sí queda local: es solo una preferencia visual del navegador
 const MAX_COOWNERS = 3; // Un cliente puede tener hasta 3 copropietarios
 
 // ------------------------------------------------------------------
@@ -24,14 +21,13 @@ let coownerRowCount = 0;
 const clientListEl = document.getElementById("clientList");
 const emptyStateEl = document.getElementById("emptyState");
 const searchInput = document.getElementById("searchInput");
+const searchClear = document.getElementById("searchClear");
+const filterNotice = document.getElementById("filterNotice");
 const filterSexo = document.getElementById("filterSexo");
 const filterEstadoCivil = document.getElementById("filterEstadoCivil");
 const filterToggle = document.getElementById("filterToggle");
 const filterPanel = document.getElementById("filterPanel");
 const filterClear = document.getElementById("filterClear");
-const settingsToggle = document.getElementById("settingsToggle");
-const settingsPanel = document.getElementById("settingsPanel");
-const themeCheckbox = document.getElementById("themeCheckbox");
 const addClientBtn = document.getElementById("addClientBtn");
 const historyBtn = document.getElementById("historyBtn");
 
@@ -39,7 +35,13 @@ const clientModal = document.getElementById("clientModal");
 const clientForm = document.getElementById("clientForm");
 const coownersListEl = document.getElementById("coownersList");
 const addCoownerBtn = document.getElementById("addCoownerBtn");
-const toastEl = document.getElementById("toast");
+
+const filterSexoSegmented = document.getElementById("filterSexoSegmented");
+const sexoCheckbox = document.getElementById("f_sexoCheckbox");
+const sexoHidden = document.getElementById("f_sexo");
+const sexoIconM = document.getElementById("f_sexoIconM");
+const sexoIconF = document.getElementById("f_sexoIconF");
+const sexoLabel = document.getElementById("f_sexoLabel");
 
 // Botón "Historial" (donde antes estaba el título): lleva a historial.html
 historyBtn.addEventListener("click", () => {
@@ -72,48 +74,46 @@ async function recargarClientes() {
 }
 
 // ------------------------------------------------------------------
-// Tema claro / oscuro (esta preferencia sí vive en el navegador)
+// Panel flotante de filtro: abrir, cerrar y click afuera
+// (el panel de ajustes/tema ya se maneja solo en theme-switch.js)
 // ------------------------------------------------------------------
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  themeCheckbox.checked = theme === "light"; // checked = derecha = claro/sol
-  localStorage.setItem(THEME_KEY, theme);
-}
-
-function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-  applyTheme(saved || (prefersLight ? "light" : "dark"));
-}
-
-themeCheckbox.addEventListener("change", () => {
-  applyTheme(themeCheckbox.checked ? "light" : "dark");
-});
-
-// ------------------------------------------------------------------
-// Paneles flotantes (filtro / ajustes): abrir, cerrar y click afuera
-// ------------------------------------------------------------------
-function togglePanel(panel, button) {
-  const willOpen = panel.classList.contains("hidden");
-  [filterPanel, settingsPanel].forEach((p) => p.classList.add("hidden"));
-  panel.classList.toggle("hidden", !willOpen);
-  button.setAttribute("aria-expanded", String(willOpen));
-}
-
 filterToggle.addEventListener("click", (e) => {
   e.stopPropagation();
-  togglePanel(filterPanel, filterToggle);
-});
-
-settingsToggle.addEventListener("click", (e) => {
-  e.stopPropagation();
-  togglePanel(settingsPanel, settingsToggle);
+  filterPanel.classList.toggle("hidden");
+  filterToggle.setAttribute("aria-expanded", String(!filterPanel.classList.contains("hidden")));
 });
 
 document.addEventListener("click", (e) => {
   if (!filterPanel.contains(e.target) && e.target !== filterToggle) filterPanel.classList.add("hidden");
-  if (!settingsPanel.contains(e.target) && e.target !== settingsToggle) settingsPanel.classList.add("hidden");
 });
+
+// ------------------------------------------------------------------
+// Control segmentado del filtro por sexo (Todos / Hombre / Mujer):
+// al tocar un botón se marca como activo y se guarda su valor en el
+// input oculto #filterSexo, que ya usa getClientesFiltrados()
+// ------------------------------------------------------------------
+filterSexoSegmented.querySelectorAll(".segmented__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    filterSexoSegmented.querySelectorAll(".segmented__btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    filterSexo.value = btn.dataset.value;
+    renderLista();
+  });
+});
+
+// ------------------------------------------------------------------
+// Switch Hombre/Mujer del formulario "Nuevo cliente": sin marcar =
+// Hombre, marcado = Mujer. Actualiza el input oculto #f_sexo y resalta
+// el ícono correspondiente
+// ------------------------------------------------------------------
+function actualizarSexoSwitch() {
+  const esMujer = sexoCheckbox.checked;
+  sexoHidden.value = esMujer ? "F" : "M";
+  sexoLabel.textContent = esMujer ? "Mujer" : "Hombre";
+  sexoIconM.classList.toggle("sex-switch__icon--active", !esMujer);
+  sexoIconF.classList.toggle("sex-switch__icon--active", esMujer);
+}
+sexoCheckbox.addEventListener("change", actualizarSexoSwitch);
 
 // ------------------------------------------------------------------
 // Filtro de Estado Civil dinámico (según lo cargado en los clientes)
@@ -154,11 +154,20 @@ function getClientesFiltrados() {
 // ------------------------------------------------------------------
 // Render de la lista de clientes
 // ------------------------------------------------------------------
+function hayFiltrosActivos() {
+  return (
+    searchInput.value.trim().length > 0 || filterSexo.value !== "todos" || filterEstadoCivil.value !== "todos"
+  );
+}
+
 function renderLista() {
   const lista = getClientesFiltrados().sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   clientListEl.innerHTML = "";
 
   emptyStateEl.classList.toggle("hidden", lista.length > 0);
+  // Aviso de "resultados filtrados": solo aparece si hay texto buscado o
+  // algún filtro de sexo/estado civil distinto de "todos"
+  filterNotice.classList.toggle("hidden", !hayFiltrosActivos());
 
   lista.forEach((cliente, i) => {
     const li = document.createElement("li");
@@ -191,12 +200,23 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-searchInput.addEventListener("input", renderLista);
-filterSexo.addEventListener("change", renderLista);
+searchInput.addEventListener("input", () => {
+  searchClear.classList.toggle("hidden", searchInput.value.length === 0);
+  renderLista();
+});
+searchClear.addEventListener("click", () => {
+  searchInput.value = "";
+  searchClear.classList.add("hidden");
+  searchInput.focus();
+  renderLista();
+});
 filterEstadoCivil.addEventListener("change", renderLista);
 filterClear.addEventListener("click", () => {
   filterSexo.value = "todos";
   filterEstadoCivil.value = "todos";
+  // Se vuelve a marcar "Todos" como activo en el control segmentado
+  filterSexoSegmented.querySelectorAll(".segmented__btn").forEach((b) => b.classList.remove("active"));
+  filterSexoSegmented.querySelector('[data-value="todos"]').classList.add("active");
   renderLista();
 });
 
@@ -252,6 +272,12 @@ function abrirModalNuevo() {
   clientForm.reset();
   coownersListEl.innerHTML = "";
   actualizarBotonAgregarCoowner();
+  // El switch de sexo vuelve a "Hombre" (estado por defecto)
+  sexoCheckbox.checked = false;
+  actualizarSexoSwitch();
+  // Al abrir de nuevo, se limpia cualquier marca roja que haya quedado
+  // de un intento anterior
+  clientForm.querySelectorAll(".field--invalid").forEach((f) => f.classList.remove("field--invalid"));
   clientModal.classList.remove("hidden");
 }
 
@@ -262,8 +288,60 @@ function cerrarModal() {
 addClientBtn.addEventListener("click", abrirModalNuevo);
 clientModal.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", cerrarModal));
 
+// ------------------------------------------------------------------
+// Validación de campos obligatorios / con formato inválido.
+// Si al guardar un campo está vacío o mal cargado, se le pone un
+// reborde rojo (clase .field--invalid) que queda hasta que se corrija.
+// ------------------------------------------------------------------
+function marcarCampo(input, esValido) {
+  const contenedor = input.closest(".field");
+  if (esValido) {
+    contenedor.classList.remove("field--invalid");
+  } else {
+    // Se saca y se vuelve a poner la clase para que la animación de
+    // "sacudida" se vea de nuevo aunque ya estuviera marcado en rojo
+    contenedor.classList.remove("field--invalid");
+    void contenedor.offsetWidth; // fuerza al navegador a "reiniciar" la animación
+    contenedor.classList.add("field--invalid");
+  }
+  return esValido;
+}
+
+// Se limpia la marca roja apenas el usuario empieza a corregir el campo
+function limpiarAlEscribir(input) {
+  input.addEventListener("input", () => input.closest(".field").classList.remove("field--invalid"));
+  input.addEventListener("change", () => input.closest(".field").classList.remove("field--invalid"));
+}
+["f_nombre", "f_dni", "f_cuil", "f_mail"].forEach((id) => limpiarAlEscribir(document.getElementById(id)));
+
+function validarFormularioCliente() {
+  const nombreInput = document.getElementById("f_nombre");
+  const dniInput = document.getElementById("f_dni");
+  const cuilInput = document.getElementById("f_cuil");
+  const mailInput = document.getElementById("f_mail");
+
+  // Se evalúan TODOS los campos (sin cortar en el primero) para que se
+  // marquen en rojo todos los que estén mal de una sola vez.
+  // El Sexo ya no se valida acá: al ser un switch (no un <select> vacío)
+  // siempre tiene un valor válido.
+  const nombreOk = marcarCampo(nombreInput, nombreInput.value.trim().length > 0);
+  const dniOk = marcarCampo(dniInput, dniInput.value.trim() === "" || /^\d+$/.test(dniInput.value.trim()));
+  const cuilOk = marcarCampo(cuilInput, cuilInput.value.trim() === "" || /^\d+$/.test(cuilInput.value.trim()));
+  const mailOk = marcarCampo(
+    mailInput,
+    mailInput.value.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailInput.value.trim())
+  );
+
+  return nombreOk && dniOk && cuilOk && mailOk;
+}
+
 clientForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  if (!validarFormularioCliente()) {
+    mostrarToast("Revisá los campos marcados en rojo.", "error");
+    return;
+  }
 
   const coownersForm = leerCoownersDelFormulario();
   if (coownersForm.length > MAX_COOWNERS) {
@@ -303,20 +381,7 @@ clientForm.addEventListener("submit", async (e) => {
 });
 
 // ------------------------------------------------------------------
-// Toast de confirmación
+// Inicialización: se pide la lista de clientes a la base de datos vía
+// la API (el tema ya lo inicializa theme-switch.js por su cuenta)
 // ------------------------------------------------------------------
-let toastTimeout;
-function mostrarToast(mensaje, tipo = "info") {
-  clearTimeout(toastTimeout);
-  toastEl.textContent = mensaje;
-  toastEl.style.borderLeft = `4px solid var(--color-${tipo})`;
-  toastEl.classList.remove("hidden");
-  toastTimeout = setTimeout(() => toastEl.classList.add("hidden"), 2600);
-}
-
-// ------------------------------------------------------------------
-// Inicialización: primero el tema (instantáneo), después se pide
-// la lista de clientes a la base de datos vía la API.
-// ------------------------------------------------------------------
-initTheme();
 recargarClientes();

@@ -35,7 +35,17 @@
   --shadow-elevated: 0 12px 32px var(--color-shadow);
   --transition-fast: 150ms ease;
   --transition-base: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Línea divisoria OSCURA (más marcada que --color-border) para separar
+     datos dentro de una misma sección, como en el perfil del cliente */
+  --color-divider: rgba(43, 36, 50, 0.18);
 }
+
+/* Se agranda un poco toda la interfaz: la base pasa de 16px (por defecto
+   del navegador) a 17px, y como bastante del CSS usa valores fijos en px,
+   además se subieron a mano los tamaños de los elementos más visibles
+   (botones, tarjetas, campos, textos del perfil, etc.) */
+html { font-size: 17px; }
 
 /* Tema oscuro: se activa con data-theme="dark" en <html> */
 html[data-theme='dark'] {
@@ -46,6 +56,7 @@ html[data-theme='dark'] {
   --color-text-primary: #f2eef6;
   --color-text-secondary: #a99fb2;
   --color-shadow: rgba(0, 0, 0, 0.35);
+  --color-divider: rgba(255, 255, 255, 0.16);
 }
 
 /* NOTA: antes había una regla @media (prefers-reduced-motion: reduce) acá
@@ -90,9 +101,14 @@ h1, h2, legend {
    BARRA SUPERIOR
    ============================================================ */
 .topbar {
-  position: relative; /* permite centrar .topbar__center de forma absoluta */
+  position: relative;
+  z-index: 5; /* IMPORTANTE: sin esto, al ser .topbar un elemento flex hijo
+                 de .app, el navegador lo pinta DEBAJO de .content (que viene
+                 después en el HTML), y el panel de filtros terminaba tapado
+                 por la lista de clientes aunque tuviera z-index más alto */
   display: flex;
   align-items: center;
+  gap: 18px;
   min-height: 44px;
   margin-bottom: 28px;
 }
@@ -111,44 +127,46 @@ h1, h2, legend {
 
 .topbar__brand-icon {
   color: var(--color-accent);
-  font-size: 30px;
+  font-size: 32px;
 }
 
 .topbar__title {
-  font-size: 22px;
+  font-size: 23px;
   letter-spacing: 0.2px;
 }
 
-/* Buscador + filtro: centrados horizontalmente en la barra superior */
+/* Buscador + filtro: "Historial" queda fijo en el mismo punto donde
+   arranca el contenido (mismo padding que .content, sin trucos de
+   porcentajes) y este bloque ocupa TODO el espacio restante */
 .topbar__center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* Botón "Historial": ocupa el lugar donde antes estaba el título */
+/* Botón "Historial": ocupa el lugar donde antes estaba el título, y no
+   se achica nunca aunque el buscador crezca */
 .history-btn {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 11px 18px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
 }
 .history-btn:hover { background: var(--color-surface-hover); border-color: var(--color-accent); transform: translateY(-1px); }
 .history-btn:active { transform: scale(0.96); transition-duration: 90ms; }
-.history-btn .material-symbols-outlined { font-size: 20px; color: var(--color-accent); }
+.history-btn .material-symbols-outlined { font-size: 21px; color: var(--color-accent); }
 
 /* Tuerca de ajustes: fija en la esquina superior derecha de la PANTALLA,
    bien alejada del buscador y del filtro */
@@ -159,16 +177,17 @@ h1, h2, legend {
   z-index: 25;
 }
 
-/* Buscador */
+/* Buscador: crece para ocupar todo el espacio libre de la barra */
 .search-box {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 9px 16px;
-  min-width: 260px;
+  padding: 10px 16px;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -177,25 +196,45 @@ h1, h2, legend {
   box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
-.search-box__icon { color: var(--color-text-secondary); font-size: 20px; }
+.search-box__icon { color: var(--color-text-secondary); font-size: 21px; flex-shrink: 0; }
 
 .search-box__input {
   border: none;
   outline: none;
   background: transparent;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-primary);
   width: 100%;
 }
+
+/* Mini "x" para limpiar el buscador: solo se muestra cuando hay texto
+   escrito (la clase .hidden la agrega/saca JS) */
+.search-box__clear {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.search-box__clear:hover { background: var(--color-error); color: #fff; }
+.search-box__clear:active { transform: scale(0.88); transition-duration: 90ms; }
+.search-box__clear .material-symbols-outlined { font-size: 15px; }
 
 /* Botones de icono circulares (filtro / ajustes) */
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -281,6 +320,42 @@ h1, h2, legend {
 .switch input:checked + .switch__track { background: var(--color-accent); }
 .switch input:checked + .switch__track .switch__thumb { transform: translateX(20px); }
 
+/* Switch Hombre/Mujer: mismo componente visual que el de tema claro/oscuro,
+   usado en los formularios de alta/edición (donde el sexo es obligatorio) */
+.sex-switch { display: flex; align-items: center; gap: 10px; }
+.sex-switch__icon { font-size: 21px; color: var(--color-text-secondary); transition: color var(--transition-fast); }
+.sex-switch__icon--active { color: var(--color-accent); }
+.sex-switch__label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-left: 2px; }
+
+/* Filtro de sexo (Todos / Hombre / Mujer): al ser 3 opciones se usa un
+   control segmentado en vez de un switch binario, pero con la misma idea
+   visual de "elegir tocando" en lugar de un <select> */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.segmented__btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.segmented__btn .material-symbols-outlined { font-size: 17px; }
+.segmented__btn:hover { background: var(--color-surface-hover); }
+.segmented__btn.active { background: var(--color-accent); color: #fff; }
+.segmented__btn:active { transform: scale(0.96); transition-duration: 90ms; }
+
 .text-btn {
   border: none;
   background: none;
@@ -316,11 +391,11 @@ h1, h2, legend {
 .client-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 14px 18px;
+  padding: 16px 20px;
   cursor: pointer;
   box-shadow: var(--shadow-card);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
@@ -343,24 +418,24 @@ h1, h2, legend {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--color-accent-soft);
   color: var(--color-accent);
   flex-shrink: 0;
 }
-.client-card__sex-icon .material-symbols-outlined { font-size: 22px; }
+.client-card__sex-icon .material-symbols-outlined { font-size: 24px; }
 
 .client-card__name {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-text-primary);
 }
 
 .client-card__meta {
   margin-left: auto;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-secondary);
   display: none;
 }
@@ -380,28 +455,32 @@ h1, h2, legend {
 }
 .empty-state .material-symbols-outlined { font-size: 40px; color: var(--color-border); }
 
-/* Botón flotante de agregar cliente */
+/* Botón de agregar cliente: rectangular, con ícono + texto, un poco más
+   arriba que antes para que no quede pegado al borde de la pantalla */
 .fab {
   position: fixed;
-  bottom: 32px;
+  bottom: 48px;
   right: 32px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  height: 52px;
+  padding: 0 22px;
+  border-radius: var(--radius-lg);
   border: none;
   background: var(--color-accent);
   color: #fff;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
   cursor: pointer;
   box-shadow: var(--shadow-elevated);
   transition: transform var(--transition-fast), background var(--transition-fast);
   z-index: 20;
 }
-.fab:hover { background: var(--color-accent-hover); transform: scale(1.06); }
-.fab:active { transform: scale(0.94); transition-duration: 90ms; }
-.fab .material-symbols-outlined { font-size: 26px; }
+.fab:hover { background: var(--color-accent-hover); transform: translateY(-2px); }
+.fab:active { transform: scale(0.96); transition-duration: 90ms; }
+.fab .material-symbols-outlined { font-size: 22px; }
 
 /* ============================================================
    FOOTER (discreto, esquina inferior izquierda, con línea superior)
@@ -460,25 +539,19 @@ h1, h2, legend {
 .modal__header h2 { font-size: 19px; }
 
 /* ============================================================
-   MODAL DE SOLO LECTURA (detalle de cliente)
+   DATOS DE UN CLIENTE (usado dentro de .perfil-grid en perfil.html)
    ============================================================ */
-.view-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 20px;
-  margin-bottom: 18px;
-}
 .view-item { display: flex; align-items: flex-start; gap: 10px; }
-.view-item .material-symbols-outlined { color: var(--color-accent); font-size: 20px; margin-top: 2px; }
+.view-item .material-symbols-outlined { color: var(--color-accent); font-size: 21px; margin-top: 2px; }
 .view-item__text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .view-item__label {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--color-text-secondary);
 }
 .view-item__value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
@@ -488,8 +561,8 @@ h1, h2, legend {
 .copy-btn {
   margin-left: auto;
   flex-shrink: 0;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid transparent;
   background: transparent;
@@ -502,13 +575,8 @@ h1, h2, legend {
 }
 .copy-btn:hover { background: var(--color-accent-soft); color: var(--color-accent); }
 .copy-btn:active { transform: scale(0.88); transition-duration: 90ms; }
-.copy-btn .material-symbols-outlined { font-size: 17px; color: inherit; margin-top: 0; }
+.copy-btn .material-symbols-outlined { font-size: 18px; color: inherit; margin-top: 0; }
 
-.view-coowners {
-  border-top: 1px solid var(--color-border);
-  padding-top: 14px;
-  margin-bottom: 8px;
-}
 .view-coowners__title {
   font-family: var(--font-heading);
   font-size: 13px;
@@ -521,7 +589,7 @@ h1, h2, legend {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-secondary);
   padding: 6px 0;
 }
@@ -548,23 +616,36 @@ h1, h2, legend {
   padding: 0 6px;
 }
 
-.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--color-text-secondary); }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--color-text-secondary); }
 .field--wide { grid-column: 1 / -1; }
 
 .field input, .field select {
-  padding: 9px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15px;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .field input:focus, .field select:focus {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+/* Campo obligatorio vacío o con datos no válidos al intentar guardar:
+   queda con reborde rojo (y una leve sacudida) hasta que se corrija */
+.field--invalid input, .field--invalid select {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+  animation: campo-invalido 320ms ease;
+}
+@keyframes campo-invalido {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 /* El ícono de calendario de los inputs type="date" es negro por defecto
@@ -610,13 +691,13 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 18px;
+  gap: 7px;
+  padding: 11px 20px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
 }
@@ -643,14 +724,19 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
   transform: translateX(-50%);
   background: var(--color-text-primary);
   color: var(--color-bg);
-  padding: 12px 20px;
+  padding: 13px 18px 13px 22px;
+  border-left: 4px solid var(--color-info); /* JS sobreescribe este color según el tipo de alerta */
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   box-shadow: var(--shadow-elevated);
   z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   animation: toast-in var(--transition-base);
 }
+.toast__icon { font-size: 21px; flex-shrink: 0; } /* mismo color que la franja lateral, según el tipo de alerta */
 @keyframes toast-in {
   from { opacity: 0; transform: translate(-50%, 10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
@@ -658,54 +744,87 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
 
 /* ============================================================
    PÁGINA DE PERFIL (perfil.html)
+   Ya no hay un recuadro contenedor: los datos quedan dispersos en la
+   página, con tipografía más grande, y las acciones quedan fijas arriba
+   del footer para verse siempre, incluso scrolleando.
    ============================================================ */
-.topbar--perfil { justify-content: flex-start; }
-.topbar--perfil .topbar__center { position: static; transform: none; }
+.topbar--perfil { gap: 14px; }
+
+/* Espacio extra abajo para que el contenido no quede tapado por la
+   barra de acciones fija ni por el footer */
+.app--perfil { padding-bottom: 150px; }
 
 .perfil-content { display: flex; justify-content: center; }
 
-.perfil-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: 28px 32px;
-  width: min(760px, 100%);
-  animation: card-in var(--transition-base) both;
-}
+.perfil-wrap { width: min(760px, 100%); }
 
-.perfil-card__header {
+.perfil-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 22px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--color-border);
+  gap: 18px;
+  margin: 12px 0 40px;
+  animation: card-in var(--transition-base) both;
 }
-.perfil-card__icon {
-  width: 52px;
-  height: 52px;
+.perfil-header__icon {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: var(--color-accent-soft);
   color: var(--color-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 34px;
+  flex-shrink: 0;
 }
-.perfil-card__header h1 { font-size: 22px; }
+.perfil-header h1 { font-size: 30px; }
 
-.perfil-actions {
+/* Grilla de datos: más espaciada y con tipografía más grande que la del
+   antiguo modal de solo lectura. Cada dato lleva una línea delgada
+   oscura abajo, para separarlos claramente entre sí */
+.perfil-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px 90px; /* más separación horizontal entre las dos columnas */
+  margin-bottom: 40px;
+}
+.perfil-grid .view-item {
+  align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.perfil-grid .view-item .material-symbols-outlined { font-size: 24px; }
+.perfil-grid .view-item__label { font-size: 12px; }
+.perfil-grid .view-item__value { font-size: 20px; }
+
+/* Línea oscura separando los datos de la sección de Copropietarios */
+.perfil-coowners {
+  margin-bottom: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-divider);
+}
+.perfil-coowners .view-coowners__title { font-size: 15px; }
+.perfil-coowners .view-coowner { font-size: 16px; }
+
+/* Barra de acciones FIJA, siempre visible arriba del footer, aunque se
+   scrollee toda la página */
+.perfil-actions-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 58px; /* deja lugar al footer, que tiene su propia línea superior */
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--color-border);
+  gap: 14px;
   flex-wrap: wrap;
-  gap: 12px;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  box-shadow: var(--shadow-elevated);
+  z-index: 40;
 }
-.perfil-actions-right { display: flex; gap: 10px; }
 
 /* Tarjeta flotante de confirmación de borrado (primer paso, antes del
    alert nativo del navegador que es la segunda confirmación) */
@@ -725,19 +844,40 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-elevated);
-  padding: 26px 28px;
-  width: min(380px, 90vw);
+  padding: 40px 36px;
+  width: min(460px, 92vw);
   text-align: center;
   animation: modal-in var(--transition-base);
 }
-.confirm-card__icon { font-size: 36px; color: var(--color-error); margin-bottom: 10px; }
-.confirm-card__panel p { margin: 0 0 20px; color: var(--color-text-primary); font-size: 15px; }
-.confirm-card__actions { display: flex; gap: 10px; justify-content: center; }
+.confirm-card__icon { font-size: 48px; color: var(--color-error); margin-bottom: 14px; }
+.confirm-card__panel p { margin: 0 0 26px; color: var(--color-text-primary); font-size: 19px; }
+.confirm-card__actions { display: flex; gap: 12px; justify-content: center; }
+/* El aviso de "acción irreversible" queda bien separado de los botones,
+   chico, y del mismo color que los íconos de copiar (--color-text-secondary) */
+.confirm-card__hint { margin: 32px 0 0; font-size: 10px; color: var(--color-text-secondary); }
+
+/* ============================================================
+   AVISO DE "RESULTADOS FILTRADOS" (index.html e historial.html)
+   ============================================================ */
+.filter-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  animation: card-in var(--transition-base) both;
+}
+.filter-notice .material-symbols-outlined { font-size: 19px; }
 
 /* ============================================================
    HISTORIAL (historial.html)
    ============================================================ */
-.historial-title { font-size: 20px; margin-left: 16px; }
+.historial-title { font-size: 21px; margin-left: 16px; }
 .historial-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .historial-item {
   display: flex;
@@ -747,31 +887,80 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 14px 18px;
+  padding: 15px 20px;
   box-shadow: var(--shadow-card);
   animation: card-in var(--transition-base) both;
 }
+/* El color de la franja lateral Y del ícono coinciden con el tipo de
+   movimiento: verde = alta, azul = edición, rojo = baja */
 .historial-item--success { border-left-color: var(--color-success); }
+.historial-item--success .material-symbols-outlined { color: var(--color-success); }
 .historial-item--info { border-left-color: var(--color-info); }
+.historial-item--info .material-symbols-outlined { color: var(--color-info); }
 .historial-item--error { border-left-color: var(--color-error); }
-.historial-item .material-symbols-outlined { color: var(--color-accent); font-size: 22px; }
+.historial-item--error .material-symbols-outlined { color: var(--color-error); }
+.historial-item .material-symbols-outlined { font-size: 23px; }
 .historial-item__text { display: flex; flex-direction: column; gap: 2px; }
-.historial-item__title { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
+.historial-item__title { font-weight: 600; font-size: 15px; color: var(--color-text-primary); }
 .historial-item__date { font-size: 12px; color: var(--color-text-secondary); }
+
+/* Barra de búsqueda + filtro de historial, igual estilo que en index.html */
+.historial-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 20px;
+}
+
+.historial-filter-panel {
+  min-width: 220px;
+}
+.historial-filter-panel .floating-panel__field input[type="date"] {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+/* Menús desplegables (<select>) más prolijos: se oculta la flechita nativa
+   del navegador y se pone un ícono propio a la derecha. Este bloque va
+   AL FINAL a propósito, para ganarle en la cascada a ".field select" y
+   ".floating-panel__field select" (misma especificidad, gana el que
+   está más abajo en el archivo) */
+.select-wrap { position: relative; }
+.select-wrap select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+.select-wrap__icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none; /* para que el click pase directo al <select> de abajo */
+  color: var(--color-accent);
+  font-size: 21px;
+}
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 720px) {
   .app { padding: 90px 16px 72px; } /* más espacio arriba para no chocar con la marca/tuerca fijas */
+  .app--perfil { padding-bottom: 170px; } /* la barra de acciones fija necesita más lugar en mobile */
   .search-box { min-width: 0; flex: 1; }
   .topbar { flex-wrap: wrap; }
   .topbar__brand, .settings-fixed { position: absolute; top: -66px; } /* se acomodan arriba del propio topbar en vez de fijas a toda la pantalla */
   .topbar__brand { left: 0; }
   .settings-fixed { right: 0; }
-  .topbar__center { position: static; transform: none; width: 100%; justify-content: center; margin-top: 10px; }
+  .topbar__center { width: 100%; margin-top: 10px; }
   .client-form__section { grid-template-columns: 1fr; }
-  .view-grid { grid-template-columns: 1fr; }
   .coowner-row { grid-template-columns: 1fr 1fr; }
-  .perfil-card { padding: 22px 18px; }
+  .perfil-grid { grid-template-columns: 1fr; }
+  .perfil-actions-bar { width: calc(100% - 32px); bottom: 74px; }
 }

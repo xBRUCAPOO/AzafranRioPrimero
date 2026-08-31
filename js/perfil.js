@@ -1,12 +1,12 @@
 /*
  * perfil.js
  * Lógica de la página de perfil de un cliente (perfil.html).
- * Usa las funciones de api-clientes.js (que debe cargarse antes que este
- * archivo) para traer, editar y eliminar al cliente indicado por ?id=
- * en la URL.
+ *
+ * La tuerca de ajustes (tema) vive en theme-switch.js y las llamadas a la
+ * API + el toast + el historial viven en api-clientes.js. Ambos se cargan
+ * ANTES que este archivo.
  */
 
-const THEME_KEY = "gestorClientes_tema";
 const MAX_COOWNERS = 3;
 
 const params = new URLSearchParams(window.location.search);
@@ -25,26 +25,33 @@ const perfilCoowners = document.getElementById("perfilCoowners");
 const copyAllBtn = document.getElementById("copyAllBtn");
 const editBtn = document.getElementById("editBtn");
 const deleteBtn = document.getElementById("deleteBtn");
-const toastEl = document.getElementById("toast");
 
 const clientModal = document.getElementById("clientModal");
 const clientForm = document.getElementById("clientForm");
 const coownersListEl = document.getElementById("coownersList");
 const addCoownerBtn = document.getElementById("addCoownerBtn");
 
+const sexoCheckbox = document.getElementById("f_sexoCheckbox");
+const sexoHidden = document.getElementById("f_sexo");
+const sexoIconM = document.getElementById("f_sexoIconM");
+const sexoIconF = document.getElementById("f_sexoIconF");
+const sexoLabel = document.getElementById("f_sexoLabel");
+
+// Switch Hombre/Mujer del formulario de edición: sin marcar = Hombre,
+// marcado = Mujer. Actualiza el input oculto #f_sexo y resalta el ícono
+function actualizarSexoSwitch() {
+  const esMujer = sexoCheckbox.checked;
+  sexoHidden.value = esMujer ? "F" : "M";
+  sexoLabel.textContent = esMujer ? "Mujer" : "Hombre";
+  sexoIconM.classList.toggle("sex-switch__icon--active", !esMujer);
+  sexoIconF.classList.toggle("sex-switch__icon--active", esMujer);
+}
+sexoCheckbox.addEventListener("change", actualizarSexoSwitch);
+
 const confirmDeleteCard = document.getElementById("confirmDeleteCard");
 const confirmDeleteNombre = document.getElementById("confirmDeleteNombre");
 const confirmDeleteCancel = document.getElementById("confirmDeleteCancel");
 const confirmDeleteAccept = document.getElementById("confirmDeleteAccept");
-
-// ------------------------------------------------------------------
-// Tema (se respeta lo elegido en la página principal)
-// ------------------------------------------------------------------
-function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-  document.documentElement.setAttribute("data-theme", saved || (prefersLight ? "light" : "dark"));
-}
 
 // ------------------------------------------------------------------
 // Utilidades
@@ -59,15 +66,6 @@ function formatearFecha(fecha) {
   if (!fecha) return "Sin datos";
   const [anio, mes, dia] = fecha.split("-");
   return `${dia}/${mes}/${anio}`;
-}
-
-let toastTimeout;
-function mostrarToast(mensaje, tipo = "info") {
-  clearTimeout(toastTimeout);
-  toastEl.textContent = mensaje;
-  toastEl.style.borderLeft = `4px solid var(--color-${tipo})`;
-  toastEl.classList.remove("hidden");
-  toastTimeout = setTimeout(() => toastEl.classList.add("hidden"), 2600);
 }
 
 // ------------------------------------------------------------------
@@ -224,7 +222,9 @@ editBtn.addEventListener("click", () => {
   const c = clienteActual;
   document.getElementById("clientId").value = c.id;
   document.getElementById("f_nombre").value = c.nombre;
-  document.getElementById("f_sexo").value = c.sexo;
+  // Se pone el switch en la posición correspondiente al sexo del cliente
+  sexoCheckbox.checked = c.sexo === "F";
+  actualizarSexoSwitch();
   document.getElementById("f_dni").value = c.dni;
   document.getElementById("f_cuil").value = c.cuil;
   document.getElementById("f_fechaNacimiento").value = c.fecha_nacimiento || "";
@@ -240,6 +240,9 @@ editBtn.addEventListener("click", () => {
   (c.copropietarios || []).forEach((co) => crearFilaCoowner(co));
   actualizarBotonAgregarCoowner();
 
+  // Se limpia cualquier marca roja que haya quedado de un intento anterior
+  clientForm.querySelectorAll(".field--invalid").forEach((f) => f.classList.remove("field--invalid"));
+
   clientModal.classList.remove("hidden");
 });
 
@@ -247,8 +250,54 @@ clientModal.querySelectorAll("[data-close]").forEach((el) =>
   el.addEventListener("click", () => clientModal.classList.add("hidden"))
 );
 
+// ------------------------------------------------------------------
+// Validación de campos obligatorios / con formato inválido (igual que
+// en app.js): reborde rojo hasta que se corrija el dato
+// ------------------------------------------------------------------
+function marcarCampo(input, esValido) {
+  const contenedor = input.closest(".field");
+  if (esValido) {
+    contenedor.classList.remove("field--invalid");
+  } else {
+    contenedor.classList.remove("field--invalid");
+    void contenedor.offsetWidth; // reinicia la animación de "sacudida"
+    contenedor.classList.add("field--invalid");
+  }
+  return esValido;
+}
+
+function limpiarAlEscribir(input) {
+  input.addEventListener("input", () => input.closest(".field").classList.remove("field--invalid"));
+  input.addEventListener("change", () => input.closest(".field").classList.remove("field--invalid"));
+}
+["f_nombre", "f_dni", "f_cuil", "f_mail"].forEach((id) => limpiarAlEscribir(document.getElementById(id)));
+
+function validarFormularioCliente() {
+  const nombreInput = document.getElementById("f_nombre");
+  const dniInput = document.getElementById("f_dni");
+  const cuilInput = document.getElementById("f_cuil");
+  const mailInput = document.getElementById("f_mail");
+
+  // El Sexo ya no se valida acá: al ser un switch (no un <select> vacío)
+  // siempre tiene un valor válido.
+  const nombreOk = marcarCampo(nombreInput, nombreInput.value.trim().length > 0);
+  const dniOk = marcarCampo(dniInput, dniInput.value.trim() === "" || /^\d+$/.test(dniInput.value.trim()));
+  const cuilOk = marcarCampo(cuilInput, cuilInput.value.trim() === "" || /^\d+$/.test(cuilInput.value.trim()));
+  const mailOk = marcarCampo(
+    mailInput,
+    mailInput.value.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailInput.value.trim())
+  );
+
+  return nombreOk && dniOk && cuilOk && mailOk;
+}
+
 clientForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  if (!validarFormularioCliente()) {
+    mostrarToast("Revisá los campos marcados en rojo.", "error");
+    return;
+  }
 
   const coownersForm = leerCoownersDelFormulario();
   if (coownersForm.length > MAX_COOWNERS) {
@@ -289,7 +338,8 @@ clientForm.addEventListener("submit", async (e) => {
 
 // ------------------------------------------------------------------
 // Eliminar con DOBLE confirmación:
-//   1) tarjeta flotante propia de la página
+//   1) tarjeta flotante propia de la página (con el aviso de que la
+//      acción es irreversible)
 //   2) alert nativo del navegador (solo si en el paso 1 se confirmó)
 // ------------------------------------------------------------------
 deleteBtn.addEventListener("click", () => {
@@ -321,7 +371,6 @@ confirmDeleteAccept.addEventListener("click", async () => {
 });
 
 // ------------------------------------------------------------------
-// Inicialización
+// Inicialización (el tema ya lo inicializa theme-switch.js por su cuenta)
 // ------------------------------------------------------------------
-initTheme();
 cargarPerfil();

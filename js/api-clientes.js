@@ -88,6 +88,32 @@ const MOCK_CLIENTES = [
 let modoDemo = false; // true cuando no se pudo conectar con la API
 
 // ------------------------------------------------------------------
+// Toast de confirmación, COMPARTIDO por index.html y perfil.html.
+// Muestra un ícono a la derecha según el tipo de alerta:
+//   success -> tilde verde | error -> cruz roja | info/warning -> "i"/"!"
+// ------------------------------------------------------------------
+const toastEl = document.getElementById("toast");
+const ICONOS_TOAST = {
+  success: "check_circle",
+  error: "cancel",
+  info: "info",
+  warning: "warning",
+};
+let toastTimeout;
+function mostrarToast(mensaje, tipo = "info") {
+  clearTimeout(toastTimeout);
+  const icono = ICONOS_TOAST[tipo] || ICONOS_TOAST.info;
+  const color = `var(--color-${tipo})`;
+  toastEl.innerHTML = `
+    <span class="toast__text">${mensaje}</span>
+    <span class="material-symbols-outlined toast__icon" style="color: ${color}">${icono}</span>
+  `;
+  toastEl.style.borderLeftColor = color;
+  toastEl.classList.remove("hidden");
+  toastTimeout = setTimeout(() => toastEl.classList.add("hidden"), 2600);
+}
+
+// ------------------------------------------------------------------
 // Modo demo: guarda/lee la copia de trabajo en sessionStorage para que
 // index.html y perfil.html vean los mismos cambios durante una sesión
 // ------------------------------------------------------------------
