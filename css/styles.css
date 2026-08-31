@@ -1,0 +1,777 @@
+/* ============================================================
+   VARIABLES GLOBALES (tema, tipografía, radios, sombras)
+   Todo color y tipografía usado en la app sale de estas variables.
+   ============================================================ */
+:root {
+  /* Tipografías: Raleway para títulos, Nunito Sans para texto */
+  --font-heading: 'Raleway', sans-serif;
+  --font-body: 'Nunito Sans', sans-serif;
+
+  /* Color de detalle/marca de la app (pedido explícitamente) */
+  --color-accent: #8a639a;
+  --color-accent-hover: #7a5589;
+  --color-accent-soft: rgba(138, 99, 154, 0.12);
+
+  /* Colores de estado */
+  --color-success: #22c55e;
+  --color-warning: #facc15;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Tema claro (por defecto) */
+  --color-bg: #f6f4f8;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1edf5;
+  --color-border: #e6e1ec;
+  --color-text-primary: #2b2432;
+  --color-text-secondary: #6f6577;
+  --color-shadow: rgba(43, 36, 50, 0.08);
+
+  /* Radios, espaciados y transiciones reutilizables */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --shadow-card: 0 2px 10px var(--color-shadow);
+  --shadow-elevated: 0 12px 32px var(--color-shadow);
+  --transition-fast: 150ms ease;
+  --transition-base: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tema oscuro: se activa con data-theme="dark" en <html> */
+html[data-theme='dark'] {
+  --color-bg: #17141b;
+  --color-surface: #201c26;
+  --color-surface-hover: #2a2432;
+  --color-border: #362f40;
+  --color-text-primary: #f2eef6;
+  --color-text-secondary: #a99fb2;
+  --color-shadow: rgba(0, 0, 0, 0.35);
+}
+
+/* NOTA: antes había una regla @media (prefers-reduced-motion: reduce) acá
+   que ponía TODAS las animaciones y transiciones en 0.001ms. Esa regla
+   respeta el ajuste de accesibilidad "Mostrar animaciones en Windows",
+   que en muchas instalaciones de Windows 11 viene desactivado por defecto
+   sin que el usuario lo sepa — por eso las animaciones no se veían aunque
+   el CSS estuviera bien. Se quita para que las animaciones siempre se
+   vean en este proyecto de escritorio.
+
+*/
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  transition: background var(--transition-base), color var(--transition-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, legend {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  margin: 0;
+}
+
+.hidden { display: none !important; }
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 28px 64px;
+}
+
+/* ============================================================
+   BARRA SUPERIOR
+   ============================================================ */
+.topbar {
+  position: relative; /* permite centrar .topbar__center de forma absoluta */
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 28px;
+}
+
+/* "Gestor de Clientes": fijo en la esquina superior izquierda de la
+   PANTALLA (no de la barra), siempre visible aunque se haga scroll */
+.topbar__brand {
+  position: fixed;
+  top: 24px;
+  left: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 25;
+}
+
+.topbar__brand-icon {
+  color: var(--color-accent);
+  font-size: 30px;
+}
+
+.topbar__title {
+  font-size: 22px;
+  letter-spacing: 0.2px;
+}
+
+/* Buscador + filtro: centrados horizontalmente en la barra superior */
+.topbar__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Botón "Historial": ocupa el lugar donde antes estaba el título */
+.history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+}
+.history-btn:hover { background: var(--color-surface-hover); border-color: var(--color-accent); transform: translateY(-1px); }
+.history-btn:active { transform: scale(0.96); transition-duration: 90ms; }
+.history-btn .material-symbols-outlined { font-size: 20px; color: var(--color-accent); }
+
+/* Tuerca de ajustes: fija en la esquina superior derecha de la PANTALLA,
+   bien alejada del buscador y del filtro */
+.settings-fixed {
+  position: fixed;
+  top: 24px;
+  right: 28px;
+  z-index: 25;
+}
+
+/* Buscador */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 9px 16px;
+  min-width: 260px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.search-box:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.search-box__icon { color: var(--color-text-secondary); font-size: 20px; }
+
+.search-box__input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+/* Botones de icono circulares (filtro / ajustes) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+}
+.icon-btn:hover { background: var(--color-surface-hover); border-color: var(--color-accent); transform: translateY(-1px); }
+.icon-btn:active { transform: scale(0.92); transition-duration: 90ms; }
+
+.control-wrap { position: relative; }
+
+/* Paneles flotantes (filtro / ajustes) */
+.floating-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 240px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  padding: 16px;
+  z-index: 30;
+  animation: panel-in var(--transition-base);
+}
+.floating-panel--right { right: 0; }
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.floating-panel__title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.floating-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.floating-panel__field select {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+/* Interruptor de tema: izquierda oscuro (luna), derecha claro (sol) */
+.theme-switch { display: flex; align-items: center; gap: 8px; }
+.theme-switch__icon { font-size: 18px; color: var(--color-text-secondary); }
+
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch__track {
+  position: absolute; inset: 0;
+  background: var(--color-text-secondary);
+  border-radius: 999px;
+  transition: background var(--transition-base);
+}
+.switch__thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  background: var(--color-surface);
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+}
+/* Al marcar el checkbox se activa el modo claro (thumb se mueve a la derecha) */
+.switch input:checked + .switch__track { background: var(--color-accent); }
+.switch input:checked + .switch__track .switch__thumb { transform: translateX(20px); }
+
+.text-btn {
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+.text-btn:hover { color: var(--color-accent-hover); text-decoration: underline; }
+.text-btn:active { transform: scale(0.96); transition-duration: 90ms; }
+.text-btn .material-symbols-outlined { font-size: 18px; }
+
+/* ============================================================
+   LISTADO DE CLIENTES
+   ============================================================ */
+.content { flex: 1; }
+
+.client-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.client-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  animation: card-in var(--transition-base) both;
+}
+.client-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--color-accent);
+}
+.client-card:active { transform: scale(0.985); transition-duration: 90ms; }
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Icono de sexo (hombre/mujer) a la izquierda de cada card */
+.client-card__sex-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+.client-card__sex-icon .material-symbols-outlined { font-size: 22px; }
+
+.client-card__name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.client-card__meta {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .client-card__meta { display: block; }
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-secondary);
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.empty-state .material-symbols-outlined { font-size: 40px; color: var(--color-border); }
+
+/* Botón flotante de agregar cliente */
+.fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-elevated);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+  z-index: 20;
+}
+.fab:hover { background: var(--color-accent-hover); transform: scale(1.06); }
+.fab:active { transform: scale(0.94); transition-duration: 90ms; }
+.fab .material-symbols-outlined { font-size: 26px; }
+
+/* ============================================================
+   FOOTER (discreto, esquina inferior izquierda, con línea superior)
+   ============================================================ */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border); /* línea delgada que marca el inicio del footer */
+  background: var(--color-bg);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  opacity: 0.75;
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+.footer__brand { font-family: var(--font-heading); font-weight: 600; }
+.footer__sep { opacity: 0.6; }
+
+/* ============================================================
+   MODAL (alta / edición de cliente)
+   ============================================================ */
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; }
+.modal__overlay {
+  position: absolute; inset: 0;
+  background: rgba(20, 16, 24, 0.45);
+  animation: fade-in var(--transition-base);
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.modal__panel {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  width: min(640px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 24px 28px 28px;
+  box-shadow: var(--shadow-elevated);
+  animation: modal-in var(--transition-base);
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.modal__header h2 { font-size: 19px; }
+
+/* ============================================================
+   MODAL DE SOLO LECTURA (detalle de cliente)
+   ============================================================ */
+.view-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+  margin-bottom: 18px;
+}
+.view-item { display: flex; align-items: flex-start; gap: 10px; }
+.view-item .material-symbols-outlined { color: var(--color-accent); font-size: 20px; margin-top: 2px; }
+.view-item__text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.view-item__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-text-secondary);
+}
+.view-item__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* Botón para copiar un dato individual, al lado de cada campo */
+.copy-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.copy-btn:hover { background: var(--color-accent-soft); color: var(--color-accent); }
+.copy-btn:active { transform: scale(0.88); transition-duration: 90ms; }
+.copy-btn .material-symbols-outlined { font-size: 17px; color: inherit; margin-top: 0; }
+
+.view-coowners {
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+  margin-bottom: 8px;
+}
+.view-coowners__title {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-accent);
+  margin: 0 0 10px;
+}
+.view-coowner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 6px 0;
+}
+.view-coowner .material-symbols-outlined { color: var(--color-accent); font-size: 18px; }
+.view-coowner strong { color: var(--color-text-primary); }
+
+/* ============================================================
+   FORMULARIO DE CLIENTE
+   ============================================================ */
+.client-form__section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin: 0 0 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+.client-form__section legend {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-accent);
+  padding: 0 6px;
+}
+
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--color-text-secondary); }
+.field--wide { grid-column: 1 / -1; }
+
+.field input, .field select {
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+/* El ícono de calendario de los inputs type="date" es negro por defecto
+   (no lo controla nuestro CSS de colores) y en modo oscuro casi no se ve.
+   Se invierte solo en modo oscuro para que quede claro y visible. */
+html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Copropietarios */
+.coowners-list { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; }
+.coowner-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  animation: card-in var(--transition-base) both;
+}
+.coowner-row .field { margin: 0; }
+.coowner-row__remove {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-error);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.coowner-row__remove:hover { background: rgba(239, 68, 68, 0.1); }
+.coowner-row__remove:active { transform: scale(0.9); transition-duration: 90ms; }
+
+/* Acciones del formulario */
+.client-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.client-form__actions-right { display: flex; gap: 10px; margin-left: auto; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+}
+.btn .material-symbols-outlined { font-size: 18px; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(1px) scale(0.98); transition-duration: 90ms; }
+
+.btn--primary { background: var(--color-accent); color: #fff; }
+.btn--primary:hover { background: var(--color-accent-hover); }
+
+.btn--ghost { background: transparent; border-color: var(--color-border); color: var(--color-text-primary); }
+.btn--ghost:hover { background: var(--color-surface-hover); }
+
+.btn--danger { background: transparent; border-color: var(--color-error); color: var(--color-error); }
+.btn--danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* ============================================================
+   TOAST de confirmación
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-elevated);
+  z-index: 60;
+  animation: toast-in var(--transition-base);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ============================================================
+   PÁGINA DE PERFIL (perfil.html)
+   ============================================================ */
+.topbar--perfil { justify-content: flex-start; }
+.topbar--perfil .topbar__center { position: static; transform: none; }
+
+.perfil-content { display: flex; justify-content: center; }
+
+.perfil-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 28px 32px;
+  width: min(760px, 100%);
+  animation: card-in var(--transition-base) both;
+}
+
+.perfil-card__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+.perfil-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.perfil-card__header h1 { font-size: 22px; }
+
+.perfil-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.perfil-actions-right { display: flex; gap: 10px; }
+
+/* Tarjeta flotante de confirmación de borrado (primer paso, antes del
+   alert nativo del navegador que es la segunda confirmación) */
+.confirm-card {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 16, 24, 0.45);
+  animation: fade-in var(--transition-base);
+}
+.confirm-card__panel {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  padding: 26px 28px;
+  width: min(380px, 90vw);
+  text-align: center;
+  animation: modal-in var(--transition-base);
+}
+.confirm-card__icon { font-size: 36px; color: var(--color-error); margin-bottom: 10px; }
+.confirm-card__panel p { margin: 0 0 20px; color: var(--color-text-primary); font-size: 15px; }
+.confirm-card__actions { display: flex; gap: 10px; justify-content: center; }
+
+/* ============================================================
+   HISTORIAL (historial.html)
+   ============================================================ */
+.historial-title { font-size: 20px; margin-left: 16px; }
+.historial-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.historial-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  box-shadow: var(--shadow-card);
+  animation: card-in var(--transition-base) both;
+}
+.historial-item--success { border-left-color: var(--color-success); }
+.historial-item--info { border-left-color: var(--color-info); }
+.historial-item--error { border-left-color: var(--color-error); }
+.historial-item .material-symbols-outlined { color: var(--color-accent); font-size: 22px; }
+.historial-item__text { display: flex; flex-direction: column; gap: 2px; }
+.historial-item__title { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
+.historial-item__date { font-size: 12px; color: var(--color-text-secondary); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 720px) {
+  .app { padding: 90px 16px 72px; } /* más espacio arriba para no chocar con la marca/tuerca fijas */
+  .search-box { min-width: 0; flex: 1; }
+  .topbar { flex-wrap: wrap; }
+  .topbar__brand, .settings-fixed { position: absolute; top: -66px; } /* se acomodan arriba del propio topbar en vez de fijas a toda la pantalla */
+  .topbar__brand { left: 0; }
+  .settings-fixed { right: 0; }
+  .topbar__center { position: static; transform: none; width: 100%; justify-content: center; margin-top: 10px; }
+  .client-form__section { grid-template-columns: 1fr; }
+  .view-grid { grid-template-columns: 1fr; }
+  .coowner-row { grid-template-columns: 1fr 1fr; }
+  .perfil-card { padding: 22px 18px; }
+}
