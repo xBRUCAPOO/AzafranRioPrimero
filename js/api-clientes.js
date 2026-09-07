@@ -53,6 +53,22 @@ const MOCK_CLIENTES = [
     referente: "Inmobiliaria Del Sur",
     copropietarios: [],
   },
+  {
+  id: 9002,
+  nombre: "Malany Anahi Almada",
+  sexo: "F",
+  dni: "32444555",
+  cuil: "27324445551",
+  fecha_nacimiento: "2009-02-18",
+  telefono: "No se pero la amo",
+  mail: "MelyElAmorDeMiVida@gmail.com",
+  fecha_alta: "2026-02-20",
+  estado_civil: "Casado/a",
+  profesion: "Marketing",
+  direccion: "Calle San Martín 567, Córdoba",
+  referente: "A",
+  copropietarios: [{ id: 1, nombre: "Bruno Maximiliano Valarolo", dni: "6767676767" }],
+},
 ];
 
 // ------------------------------------------------------------------
