@@ -28,6 +28,13 @@ async function verificarConexionDB() {
   try {
     const res = await fetch(DB_STATUS_URL, { method: "GET" });
     if (!res.ok) throw new Error("La API respondió con error");
+    // OJO: si no hay un servidor PHP corriendo (por ejemplo, se abrió el
+    // proyecto con un servidor estático), la petición puede devolver 200
+    // igual, pero con el CÓDIGO FUENTE de clientes.php como texto plano
+    // en vez de JSON real. Por eso no alcanza con mirar res.ok: hay que
+    // confirmar que la respuesta sea JSON válido, igual que hace
+    // apiListar() en api-clientes.js.
+    await res.json();
 
     contenedor.className = "footer-db footer-db--ok";
     icono.textContent = "database";

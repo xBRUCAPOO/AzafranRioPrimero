@@ -155,18 +155,24 @@ function renderPerfil() {
   ].join("");
 
   const coprop = c.copropietarios || [];
-  perfilCoowners.innerHTML = coprop.length
-    ? `<p class="view-coowners__title">Copropietarios</p>` +
-      coprop
-        .map(
-          (co) => `
+  perfilCoowners.innerHTML =
+    `<p class="view-coowners__title">Copropietarios</p>` +
+    (coprop.length
+      ? coprop
+          .map(
+            (co) => `
         <div class="view-coowner">
           <span class="material-symbols-outlined">person</span>
           <span><strong>${escapeHtml(co.nombre)}</strong>${co.dni ? " · DNI " + escapeHtml(co.dni) : ""}</span>
         </div>`
-        )
-        .join("")
-    : "";
+          )
+          .join("")
+      : // Sin copropietarios cargados: ícono de X y texto en rojo, en vez
+        // de dejar la sección directamente vacía
+        `<div class="view-coowner view-coowner--empty">
+          <span class="material-symbols-outlined">close</span>
+          <span>Sin copropietarios</span>
+        </div>`);
 }
 
 // Copiar un solo dato: se delega el click en el contenedor de la grilla
@@ -262,9 +268,11 @@ editBtn.addEventListener("click", () => {
   document.getElementById("f_dni").value = c.dni;
   document.getElementById("f_cuil").value = c.cuil;
   document.getElementById("f_fechaNacimiento").value = c.fecha_nacimiento || "";
+  CustomDate.syncById("f_fechaNacimiento");
   document.getElementById("f_telefono").value = c.telefono;
   document.getElementById("f_mail").value = c.mail;
   document.getElementById("f_fechaAlta").value = c.fecha_alta || "";
+  CustomDate.syncById("f_fechaAlta");
   // Desplegable propio de Estado civil: hay que sincronizar el texto/ícono
   // visibles además de completar el <input> oculto
   CustomSelect.setValueById("f_estadoCivil", c.estado_civil || "");

@@ -145,8 +145,15 @@ sexoCheckbox.addEventListener("change", actualizarSexoSwitch);
 // ------------------------------------------------------------------
 // Filtro de Estado Civil dinámico (según lo cargado en los clientes)
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Opciones del filtro de Estado Civil: siempre se muestran los 5 estados
+// civiles posibles (la misma lista fija de ICONOS_ESTADO_CIVIL, en
+// api-clientes.js), no solo los que ya tengan algún cliente cargado.
+// Antes se armaban dinámicamente según los clientes existentes, y si
+// todavía no había ningún cliente "Divorciado/a" (por ejemplo), esa
+// opción directamente no aparecía en el filtro.
+// ------------------------------------------------------------------
 function refreshEstadoCivilOptions() {
-  const valoresUnicos = [...new Set(clientes.map((c) => c.estado_civil).filter(Boolean))];
   const seleccionActual = filterEstadoCivil.value;
   const listaOpciones = filterEstadoCivilWrap.querySelector(".custom-select__options");
 
@@ -154,7 +161,7 @@ function refreshEstadoCivilOptions() {
     `<li class="custom-select__option" data-value="todos" role="option">
       <span class="material-symbols-outlined">checklist</span> Todos
     </li>` +
-    valoresUnicos
+    Object.keys(ICONOS_ESTADO_CIVIL)
       .map(
         (valor) => `
       <li class="custom-select__option" data-value="${escapeHtml(valor)}" role="option">
@@ -166,8 +173,9 @@ function refreshEstadoCivilOptions() {
   // Al recrear las opciones a mano hay que volver a engancharles los
   // eventos de clic (custom-select.js no las conocía todavía)
   CustomSelect.init(filterEstadoCivilWrap);
-  // Se mantiene la selección anterior si sigue existiendo; si no, vuelve a "Todos"
-  CustomSelect.setValueById("filterEstadoCivil", valoresUnicos.includes(seleccionActual) ? seleccionActual : "todos");
+  // Se mantiene la selección anterior (siempre existe, ya que ahora la
+  // lista de opciones es fija)
+  CustomSelect.setValueById("filterEstadoCivil", seleccionActual || "todos");
 }
 
 // ------------------------------------------------------------------
@@ -348,6 +356,8 @@ filterClear.addEventListener("click", () => {
   filterReferente.value = "";
   filterFechaAltaDesde.value = "";
   filterFechaAltaHasta.value = "";
+  CustomDate.syncById("filterFechaAltaDesde");
+  CustomDate.syncById("filterFechaAltaHasta");
   // Se vuelve a marcar "Todos" como activo en el control segmentado
   filterSexoSegmented.querySelectorAll(".segmented__btn").forEach((b) => b.classList.remove("active"));
   filterSexoSegmented.querySelector('[data-value="todos"]').classList.add("active");
@@ -409,6 +419,10 @@ function abrirModalNuevo() {
   // El switch de sexo vuelve a "Hombre" (estado por defecto)
   sexoCheckbox.checked = false;
   actualizarSexoSwitch();
+  // clientForm.reset() ya vació los <input> ocultos de fecha, pero no
+  // actualiza el texto visible de los calendarios propios: se sincroniza a mano
+  CustomDate.syncById("f_fechaNacimiento");
+  CustomDate.syncById("f_fechaAlta");
   // clientForm.reset() ya vació el <input> oculto de Estado civil, pero no
   // actualiza el texto/ícono visibles del desplegable propio: se sincroniza a mano
   CustomSelect.setValueById("f_estadoCivil", "");

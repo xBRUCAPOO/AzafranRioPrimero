@@ -72,6 +72,8 @@ filterClear.addEventListener("click", () => {
   CustomSelect.setValueById("historialFilterTipo", "todos");
   filterFechaDesde.value = "";
   filterFechaHasta.value = "";
+  CustomDate.syncById("historialFilterFechaDesde");
+  CustomDate.syncById("historialFilterFechaHasta");
   renderHistorial();
 });
 

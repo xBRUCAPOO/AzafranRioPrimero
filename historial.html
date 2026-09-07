@@ -120,9 +120,23 @@
             <label class="floating-panel__field">
               <span>Fecha</span>
               <div class="floating-panel__field--range">
-                <input type="date" id="historialFilterFechaDesde" aria-label="Fecha desde" />
+                <div class="custom-date">
+                  <button type="button" class="custom-date__trigger" aria-expanded="false" aria-label="Fecha desde">
+                    <span class="custom-date__trigger-text custom-date__trigger-text--vacio">dd/mm/aaaa</span>
+                    <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                  </button>
+                  <div class="custom-date__panel hidden"></div>
+                  <input type="date" id="historialFilterFechaDesde" class="hidden" />
+                </div>
                 <span class="range-sep">a</span>
-                <input type="date" id="historialFilterFechaHasta" aria-label="Fecha hasta" />
+                <div class="custom-date">
+                  <button type="button" class="custom-date__trigger" aria-expanded="false" aria-label="Fecha hasta">
+                    <span class="custom-date__trigger-text custom-date__trigger-text--vacio">dd/mm/aaaa</span>
+                    <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                  </button>
+                  <div class="custom-date__panel hidden"></div>
+                  <input type="date" id="historialFilterFechaHasta" class="hidden" />
+                </div>
               </div>
             </label>
             <button id="historialFilterClear" class="text-btn">Limpiar filtros</button>
@@ -153,12 +167,16 @@
       <div class="footer-db footer-db--checking" id="footerDb" tabindex="0">
         <span class="material-symbols-outlined footer-db__icon" id="footerDbIcon">hourglass_empty</span>
         <span class="footer-db__text" id="footerDbText">Comprobando conexión...</span>
-        <div class="footer-db__tooltip" id="footerDbTooltip">Comprobando el estado de la base de datos...</div>
+        <div class="footer-db__tooltip">
+          <span class="material-symbols-outlined footer-db__tooltip-icon">info</span>
+          <span id="footerDbTooltip">Comprobando el estado de la base de datos...</span>
+        </div>
       </div>
     </footer>
   </div>
 
   <script src="js/custom-select.js"></script>
+  <script src="js/custom-date.js"></script>
   <script src="js/theme-switch.js"></script>
   <script src="js/db-status.js"></script>
   <script src="js/historial.js"></script>

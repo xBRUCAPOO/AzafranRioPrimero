@@ -64,7 +64,16 @@ const CustomSelect = {
     hiddenInput.value = valor ?? "";
 
     if (opcion) {
-      triggerTexto.textContent = opcion.textContent.trim();
+      // OJO: opcion.textContent trae TAMBIÉN el nombre interno del ícono
+      // (ej. "family_restroom"), porque ese texto sigue estando ahí
+      // aunque la fuente de Material Symbols lo dibuje como un dibujo.
+      // Se saca una copia del <li> sin el ícono antes de leer la etiqueta,
+      // para no terminar mostrando "family_restroom Unión convivencial".
+      const copiaSinIcono = opcion.cloneNode(true);
+      const iconoEnCopia = copiaSinIcono.querySelector(".material-symbols-outlined");
+      if (iconoEnCopia) iconoEnCopia.remove();
+      triggerTexto.textContent = copiaSinIcono.textContent.trim();
+
       const iconoOpcion = opcion.querySelector(".material-symbols-outlined");
       if (iconoOpcion && triggerIcono) triggerIcono.textContent = iconoOpcion.textContent;
       container.querySelectorAll(".custom-select__option").forEach((o) => o.classList.remove("selected"));
