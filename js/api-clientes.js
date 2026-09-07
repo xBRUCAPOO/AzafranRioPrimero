@@ -55,7 +55,7 @@ const MOCK_CLIENTES = [
   },
   {
   id: 9003,
-  nombre: "Malany Anahi Almada",
+  nombre: "Malany Anahi Almada ",
   sexo: "F",
   dni: "32444555",
   cuil: "27324445551",
