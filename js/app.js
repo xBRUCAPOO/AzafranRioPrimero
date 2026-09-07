@@ -15,9 +15,17 @@ const MAX_COOWNERS = 3; // Un cliente puede tener hasta 3 copropietarios
 let clientes = [];
 let coownerRowCount = 0;
 
+// Modo selección: se activa con el botón "Generar Planilla" y permite
+// tildar varios clientes para mandarlos a exportar.html. clientesSeleccionados
+// guarda los ids como texto (Set), para no depender de si vienen como
+// número o como string según la fuente (API real vs modo demo).
+let modoSeleccion = false;
+let clientesSeleccionados = new Set();
+
 // ------------------------------------------------------------------
 // Referencias al DOM
 // ------------------------------------------------------------------
+const appEl = document.querySelector(".app");
 const clientListEl = document.getElementById("clientList");
 const emptyStateEl = document.getElementById("emptyState");
 const searchInput = document.getElementById("searchInput");
@@ -25,11 +33,24 @@ const searchClear = document.getElementById("searchClear");
 const filterNotice = document.getElementById("filterNotice");
 const filterSexo = document.getElementById("filterSexo");
 const filterEstadoCivil = document.getElementById("filterEstadoCivil");
+const filterEstadoCivilWrap = document.getElementById("filterEstadoCivilWrap");
+// NUEVOS filtros: profesión, referente y rango de fecha de alta
+const filterProfesion = document.getElementById("filterProfesion");
+const filterReferente = document.getElementById("filterReferente");
+const filterFechaAltaDesde = document.getElementById("filterFechaAltaDesde");
+const filterFechaAltaHasta = document.getElementById("filterFechaAltaHasta");
 const filterToggle = document.getElementById("filterToggle");
 const filterPanel = document.getElementById("filterPanel");
 const filterClear = document.getElementById("filterClear");
 const addClientBtn = document.getElementById("addClientBtn");
 const historyBtn = document.getElementById("historyBtn");
+
+// Modo selección ("Generar Planilla")
+const planillaBtn = document.getElementById("planillaBtn");
+const selectionBar = document.getElementById("selectionBar");
+const selectionCount = document.getElementById("selectionCount");
+const selectionCancel = document.getElementById("selectionCancel");
+const selectionContinue = document.getElementById("selectionContinue");
 
 const clientModal = document.getElementById("clientModal");
 const clientForm = document.getElementById("clientForm");
@@ -52,6 +73,12 @@ historyBtn.addEventListener("click", () => {
 // Si la API no responde (por ejemplo, todavía no hay servidor PHP corriendo),
 // se activa el MODO DEMO (definido en api-clientes.js) con 4 clientes de prueba.
 async function recargarClientes() {
+  // Pantalla de carga: se muestra mientras se espera la respuesta del
+  // servidor (o mientras se resuelve que hay que pasar a modo demo)
+  filterNotice.classList.add("hidden");
+  emptyStateEl.classList.add("hidden");
+  clientListEl.innerHTML = `<li class="loading-state"><span class="spinner"></span>Cargando clientes...</li>`;
+
   try {
     clientes = await apiListar();
     modoDemo = false;
@@ -121,14 +148,26 @@ sexoCheckbox.addEventListener("change", actualizarSexoSwitch);
 function refreshEstadoCivilOptions() {
   const valoresUnicos = [...new Set(clientes.map((c) => c.estado_civil).filter(Boolean))];
   const seleccionActual = filterEstadoCivil.value;
-  filterEstadoCivil.innerHTML = '<option value="todos">Todos</option>';
-  valoresUnicos.forEach((valor) => {
-    const opt = document.createElement("option");
-    opt.value = valor;
-    opt.textContent = valor;
-    filterEstadoCivil.appendChild(opt);
-  });
-  filterEstadoCivil.value = valoresUnicos.includes(seleccionActual) ? seleccionActual : "todos";
+  const listaOpciones = filterEstadoCivilWrap.querySelector(".custom-select__options");
+
+  listaOpciones.innerHTML =
+    `<li class="custom-select__option" data-value="todos" role="option">
+      <span class="material-symbols-outlined">checklist</span> Todos
+    </li>` +
+    valoresUnicos
+      .map(
+        (valor) => `
+      <li class="custom-select__option" data-value="${escapeHtml(valor)}" role="option">
+        <span class="material-symbols-outlined">${iconoEstadoCivil(valor)}</span> ${escapeHtml(valor)}
+      </li>`
+      )
+      .join("");
+
+  // Al recrear las opciones a mano hay que volver a engancharles los
+  // eventos de clic (custom-select.js no las conocía todavía)
+  CustomSelect.init(filterEstadoCivilWrap);
+  // Se mantiene la selección anterior si sigue existiendo; si no, vuelve a "Todos"
+  CustomSelect.setValueById("filterEstadoCivil", valoresUnicos.includes(seleccionActual) ? seleccionActual : "todos");
 }
 
 // ------------------------------------------------------------------
@@ -138,6 +177,12 @@ function getClientesFiltrados() {
   const texto = searchInput.value.trim().toLowerCase();
   const sexo = filterSexo.value;
   const estadoCivil = filterEstadoCivil.value;
+  // NUEVOS filtros: profesión y referente (coincidencia parcial, sin
+  // importar mayúsculas/minúsculas) y rango de fecha de alta
+  const profesion = filterProfesion.value.trim().toLowerCase();
+  const referente = filterReferente.value.trim().toLowerCase();
+  const fechaDesde = filterFechaAltaDesde.value; // "YYYY-MM-DD" o vacío
+  const fechaHasta = filterFechaAltaHasta.value;
 
   return clientes.filter((c) => {
     const coincideTexto =
@@ -147,7 +192,19 @@ function getClientesFiltrados() {
       (c.mail || "").toLowerCase().includes(texto);
     const coincideSexo = sexo === "todos" || c.sexo === sexo;
     const coincideEstado = estadoCivil === "todos" || c.estado_civil === estadoCivil;
-    return coincideTexto && coincideSexo && coincideEstado;
+    const coincideProfesion = !profesion || (c.profesion || "").toLowerCase().includes(profesion);
+    const coincideReferente = !referente || (c.referente || "").toLowerCase().includes(referente);
+    const coincideFechaDesde = !fechaDesde || (c.fecha_alta && c.fecha_alta >= fechaDesde);
+    const coincideFechaHasta = !fechaHasta || (c.fecha_alta && c.fecha_alta <= fechaHasta);
+    return (
+      coincideTexto &&
+      coincideSexo &&
+      coincideEstado &&
+      coincideProfesion &&
+      coincideReferente &&
+      coincideFechaDesde &&
+      coincideFechaHasta
+    );
   });
 }
 
@@ -156,7 +213,13 @@ function getClientesFiltrados() {
 // ------------------------------------------------------------------
 function hayFiltrosActivos() {
   return (
-    searchInput.value.trim().length > 0 || filterSexo.value !== "todos" || filterEstadoCivil.value !== "todos"
+    searchInput.value.trim().length > 0 ||
+    filterSexo.value !== "todos" ||
+    filterEstadoCivil.value !== "todos" ||
+    filterProfesion.value.trim().length > 0 ||
+    filterReferente.value.trim().length > 0 ||
+    filterFechaAltaDesde.value !== "" ||
+    filterFechaAltaHasta.value !== ""
   );
 }
 
@@ -170,8 +233,9 @@ function renderLista() {
   filterNotice.classList.toggle("hidden", !hayFiltrosActivos());
 
   lista.forEach((cliente, i) => {
+    const estaSeleccionado = clientesSeleccionados.has(String(cliente.id));
     const li = document.createElement("li");
-    li.className = "client-card";
+    li.className = "client-card" + (estaSeleccionado ? " is-selected" : "");
     li.style.animationDelay = `${Math.min(i, 12) * 25}ms`;
     li.dataset.id = cliente.id;
 
@@ -179,6 +243,7 @@ function renderLista() {
     const icono = cliente.sexo === "F" ? "face_3" : "face";
 
     li.innerHTML = `
+      <input type="checkbox" class="client-card__checkbox" data-id="${cliente.id}" ${estaSeleccionado ? "checked" : ""} aria-label="Elegir a ${escapeHtml(cliente.nombre)} para la planilla" />
       <span class="client-card__sex-icon">
         <span class="material-symbols-outlined">${icono}</span>
       </span>
@@ -186,13 +251,71 @@ function renderLista() {
       <span class="client-card__meta">${escapeHtml(cliente.telefono || "")}</span>
     `;
 
-    // Al hacer clic se navega de página completa al perfil del cliente
+    const checkbox = li.querySelector(".client-card__checkbox");
+    // El clic en el propio checkbox no debe "burbujear" hacia el clic de
+    // la tarjeta (si no, se tildaría y destildaría dos veces seguidas)
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
+    checkbox.addEventListener("change", () => actualizarSeleccionCliente(li, checkbox));
+
     li.addEventListener("click", () => {
+      if (modoSeleccion) {
+        // En modo selección, tocar cualquier parte de la tarjeta tilda/destilda
+        checkbox.checked = !checkbox.checked;
+        actualizarSeleccionCliente(li, checkbox);
+        return;
+      }
+      // Fuera del modo selección, se navega de página completa al perfil
       window.location.href = `perfil.html?id=${cliente.id}`;
     });
     clientListEl.appendChild(li);
   });
 }
+
+// ------------------------------------------------------------------
+// Modo selección de clientes, para "Generar Planilla": arranca con el
+// botón #planillaBtn, agrega un checkbox a cada tarjeta y muestra una
+// barra flotante con la cantidad elegida (#selectionBar). Al confirmar,
+// los datos completos de los clientes elegidos (ya están en memoria en
+// "clientes", con sus copropietarios incluidos) se guardan en
+// sessionStorage y se navega a exportar.html para la vista previa.
+// ------------------------------------------------------------------
+function actualizarSeleccionCliente(li, checkbox) {
+  const id = String(checkbox.dataset.id);
+  if (checkbox.checked) clientesSeleccionados.add(id);
+  else clientesSeleccionados.delete(id);
+  li.classList.toggle("is-selected", checkbox.checked);
+  selectionCount.textContent = clientesSeleccionados.size;
+  selectionContinue.disabled = clientesSeleccionados.size === 0;
+}
+
+function iniciarModoSeleccion() {
+  modoSeleccion = true;
+  clientesSeleccionados.clear();
+  appEl.classList.add("selection-mode");
+  selectionBar.classList.remove("hidden");
+  selectionCount.textContent = "0";
+  selectionContinue.disabled = true;
+  renderLista(); // vuelve a pintar la lista para que aparezcan los checkboxes
+}
+
+function salirModoSeleccion() {
+  modoSeleccion = false;
+  clientesSeleccionados.clear();
+  appEl.classList.remove("selection-mode");
+  selectionBar.classList.add("hidden");
+  renderLista();
+}
+
+planillaBtn.addEventListener("click", iniciarModoSeleccion);
+selectionCancel.addEventListener("click", salirModoSeleccion);
+
+// "Continuar": guarda los clientes elegidos y navega a la vista previa
+selectionContinue.addEventListener("click", () => {
+  if (clientesSeleccionados.size === 0) return;
+  const elegidos = clientes.filter((c) => clientesSeleccionados.has(String(c.id)));
+  sessionStorage.setItem("gestorClientes_exportSeleccion", JSON.stringify(elegidos));
+  window.location.href = "exportar.html";
+});
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -211,9 +334,20 @@ searchClear.addEventListener("click", () => {
   renderLista();
 });
 filterEstadoCivil.addEventListener("change", renderLista);
+// NUEVOS filtros: profesión, referente (mientras se escribe) y fecha de
+// alta desde/hasta (al elegir una fecha)
+filterProfesion.addEventListener("input", renderLista);
+filterReferente.addEventListener("input", renderLista);
+filterFechaAltaDesde.addEventListener("change", renderLista);
+filterFechaAltaHasta.addEventListener("change", renderLista);
+
 filterClear.addEventListener("click", () => {
   filterSexo.value = "todos";
-  filterEstadoCivil.value = "todos";
+  CustomSelect.setValueById("filterEstadoCivil", "todos");
+  filterProfesion.value = "";
+  filterReferente.value = "";
+  filterFechaAltaDesde.value = "";
+  filterFechaAltaHasta.value = "";
   // Se vuelve a marcar "Todos" como activo en el control segmentado
   filterSexoSegmented.querySelectorAll(".segmented__btn").forEach((b) => b.classList.remove("active"));
   filterSexoSegmented.querySelector('[data-value="todos"]').classList.add("active");
@@ -275,6 +409,9 @@ function abrirModalNuevo() {
   // El switch de sexo vuelve a "Hombre" (estado por defecto)
   sexoCheckbox.checked = false;
   actualizarSexoSwitch();
+  // clientForm.reset() ya vació el <input> oculto de Estado civil, pero no
+  // actualiza el texto/ícono visibles del desplegable propio: se sincroniza a mano
+  CustomSelect.setValueById("f_estadoCivil", "");
   // Al abrir de nuevo, se limpia cualquier marca roja que haya quedado
   // de un intento anterior
   clientForm.querySelectorAll(".field--invalid").forEach((f) => f.classList.remove("field--invalid"));

@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Clientes</title>
 
+  <!-- Aplica el tema guardado ANTES de pintar la página: sin esto, la
+       página siempre arranca en claro (por el data-theme="light" de más
+       arriba) y recién pasa a oscuro cuando corre theme-switch.js al
+       final del body, generando un "flash" de luz molesto. Va bloqueante
+       y lo más arriba posible en el <head> a propósito. -->
+  <script>
+    (function () {
+      var tema = localStorage.getItem("gestorClientes_tema");
+      if (!tema) tema = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", tema);
+    })();
+  </script>
+
   <!-- Tipografías desde Google Fonts: Raleway (títulos) y Nunito Sans (texto general) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -99,13 +112,46 @@
             </label>
             <label class="floating-panel__field">
               <span>Estado civil</span>
-              <div class="select-wrap">
-                <select id="filterEstadoCivil">
-                  <option value="todos">Todos</option>
-                </select>
-                <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+              <!-- Desplegable propio en vez de <select> nativo: cada opción
+                   con su ícono y la elegida resaltada en el morado de la
+                   marca. Las opciones (aparte de "Todos") se arman solas
+                   según lo cargado en los clientes, ver app.js:
+                   refreshEstadoCivilOptions() -->
+              <div class="custom-select" id="filterEstadoCivilWrap">
+                <button type="button" class="custom-select__trigger" aria-expanded="false">
+                  <span class="material-symbols-outlined custom-select__trigger-icon">checklist</span>
+                  <span class="custom-select__trigger-text">Todos</span>
+                  <span class="material-symbols-outlined custom-select__arrow">expand_more</span>
+                </button>
+                <ul class="custom-select__options hidden" role="listbox">
+                  <li class="custom-select__option selected" data-value="todos" role="option">
+                    <span class="material-symbols-outlined">checklist</span> Todos
+                  </li>
+                </ul>
+                <input type="hidden" id="filterEstadoCivil" value="todos" />
               </div>
             </label>
+
+            <!-- NUEVOS filtros: profesión y referente (texto libre) -->
+            <label class="floating-panel__field">
+              <span>Profesión</span>
+              <input type="text" id="filterProfesion" placeholder="Ej: Contador/a" autocomplete="off" />
+            </label>
+            <label class="floating-panel__field">
+              <span>Referente</span>
+              <input type="text" id="filterReferente" placeholder="Ej: Estudio Pérez" autocomplete="off" />
+            </label>
+
+            <!-- NUEVO filtro: rango de fecha de alta (desde / hasta) -->
+            <label class="floating-panel__field">
+              <span>Fecha de alta</span>
+              <div class="floating-panel__field--range">
+                <input type="date" id="filterFechaAltaDesde" aria-label="Fecha de alta desde" />
+                <span class="range-sep">a</span>
+                <input type="date" id="filterFechaAltaHasta" aria-label="Fecha de alta hasta" />
+              </div>
+            </label>
+
             <button id="filterClear" class="text-btn">Limpiar filtros</button>
           </div>
         </div>
@@ -132,13 +178,41 @@
       Registrar nuevo cliente
     </button>
 
-    <!-- Footer discreto, abajo a la izquierda, con línea superior -->
+    <!-- Botón "Generar Planilla": activa el modo selección (aparece un
+         checkbox en cada tarjeta de cliente). Mismo estilo que "Registrar
+         nuevo cliente" pero anclado abajo a la IZQUIERDA -->
+    <button id="planillaBtn" class="fab fab--left" aria-label="Generar planilla de Excel con varios clientes">
+      <span class="material-symbols-outlined">grid_on</span>
+      Generar Planilla
+    </button>
+
+    <!-- Barra flotante que aparece en modo selección: muestra cuántos
+         clientes se eligieron y permite cancelar o continuar a la vista
+         previa de exportación (exportar.html) -->
+    <div id="selectionBar" class="selection-bar hidden">
+      <span class="material-symbols-outlined" style="color: var(--color-accent)">checklist</span>
+      <span class="selection-bar__count"><span id="selectionCount">0</span> seleccionados</span>
+      <button type="button" id="selectionCancel" class="btn btn--ghost">Cancelar</button>
+      <button type="button" id="selectionContinue" class="btn btn--primary" disabled>
+        <span class="material-symbols-outlined">arrow_forward</span> Continuar
+      </button>
+    </div>
+
+    <!-- Footer discreto, abajo a la izquierda, con línea superior. El
+         indicador de conexión a la base de datos queda anclado a la
+         derecha (ver .footer-db en el CSS y js/db-status.js) -->
     <footer class="footer">
       <span class="footer__brand">xBRUCAPOO</span>
       <span class="footer__sep">·</span>
       <span>v1.1.0</span>
       <span class="footer__sep">·</span>
       <span>Actualizado 31/08/2026</span>
+
+      <div class="footer-db footer-db--checking" id="footerDb" tabindex="0">
+        <span class="material-symbols-outlined footer-db__icon" id="footerDbIcon">hourglass_empty</span>
+        <span class="footer-db__text" id="footerDbText">Comprobando conexión...</span>
+        <div class="footer-db__tooltip" id="footerDbTooltip">Comprobando el estado de la base de datos...</div>
+      </div>
     </footer>
   </div>
 
@@ -214,16 +288,36 @@
 
           <label class="field">
             <span>Estado civil</span>
-            <div class="select-wrap">
-              <select id="f_estadoCivil">
-                <option value="">Sin especificar</option>
-                <option value="Soltero/a">Soltero/a</option>
-                <option value="Casado/a">Casado/a</option>
-                <option value="Divorciado/a">Divorciado/a</option>
-                <option value="Viudo/a">Viudo/a</option>
-                <option value="Unión convivencial">Unión convivencial</option>
-              </select>
-              <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+            <!-- Desplegable propio: cada estado civil con su propio ícono
+                 (ver ICONOS_ESTADO_CIVIL en api-clientes.js) y la opción
+                 elegida resaltada en el morado de la marca -->
+            <div class="custom-select">
+              <button type="button" class="custom-select__trigger" aria-expanded="false">
+                <span class="material-symbols-outlined custom-select__trigger-icon">help</span>
+                <span class="custom-select__trigger-text">Sin especificar</span>
+                <span class="material-symbols-outlined custom-select__arrow">expand_more</span>
+              </button>
+              <ul class="custom-select__options hidden" role="listbox">
+                <li class="custom-select__option selected" data-value="" role="option">
+                  <span class="material-symbols-outlined">help</span> Sin especificar
+                </li>
+                <li class="custom-select__option" data-value="Soltero/a" role="option">
+                  <span class="material-symbols-outlined">person</span> Soltero/a
+                </li>
+                <li class="custom-select__option" data-value="Casado/a" role="option">
+                  <span class="material-symbols-outlined">favorite</span> Casado/a
+                </li>
+                <li class="custom-select__option" data-value="Divorciado/a" role="option">
+                  <span class="material-symbols-outlined">heart_broken</span> Divorciado/a
+                </li>
+                <li class="custom-select__option" data-value="Viudo/a" role="option">
+                  <span class="material-symbols-outlined">local_florist</span> Viudo/a
+                </li>
+                <li class="custom-select__option" data-value="Unión convivencial" role="option">
+                  <span class="material-symbols-outlined">family_restroom</span> Unión convivencial
+                </li>
+              </ul>
+              <input type="hidden" id="f_estadoCivil" value="" />
             </div>
           </label>
 
@@ -269,8 +363,13 @@
   <!-- api-clientes.js debe cargarse ANTES que app.js: contiene las
        funciones de la API, el modo demo, el toast y el registro de historial -->
   <script src="js/api-clientes.js"></script>
-  <!-- theme-switch.js: tuerca de ajustes / tema, compartida en las 3 páginas -->
+  <!-- custom-select.js: desplegables propios (Estado civil), debe ir
+       ANTES que app.js, que llama a CustomSelect.setValueById(...) -->
+  <script src="js/custom-select.js"></script>
+  <!-- theme-switch.js: tuerca de ajustes / tema, compartida en las 4 páginas -->
   <script src="js/theme-switch.js"></script>
+  <!-- db-status.js: indicador de conexión a la base de datos en el footer -->
+  <script src="js/db-status.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

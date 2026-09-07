@@ -23,7 +23,9 @@ const filterNotice = document.getElementById("historialFilterNotice");
 const filterToggle = document.getElementById("historialFilterToggle");
 const filterPanel = document.getElementById("historialFilterPanel");
 const filterTipo = document.getElementById("historialFilterTipo");
-const filterFecha = document.getElementById("historialFilterFecha");
+// Antes era una fecha exacta (historialFilterFecha); ahora es un rango
+const filterFechaDesde = document.getElementById("historialFilterFechaDesde");
+const filterFechaHasta = document.getElementById("historialFilterFechaHasta");
 const filterClear = document.getElementById("historialFilterClear");
 
 // Icono, etiqueta y clase de color según el tipo de acción registrada
@@ -64,15 +66,22 @@ searchClear.addEventListener("click", () => {
   renderHistorial();
 });
 filterTipo.addEventListener("change", renderHistorial);
-filterFecha.addEventListener("change", renderHistorial);
+filterFechaDesde.addEventListener("change", renderHistorial);
+filterFechaHasta.addEventListener("change", renderHistorial);
 filterClear.addEventListener("click", () => {
-  filterTipo.value = "todos";
-  filterFecha.value = "";
+  CustomSelect.setValueById("historialFilterTipo", "todos");
+  filterFechaDesde.value = "";
+  filterFechaHasta.value = "";
   renderHistorial();
 });
 
 function hayFiltrosActivos() {
-  return searchInput.value.trim().length > 0 || filterTipo.value !== "todos" || filterFecha.value !== "";
+  return (
+    searchInput.value.trim().length > 0 ||
+    filterTipo.value !== "todos" ||
+    filterFechaDesde.value !== "" ||
+    filterFechaHasta.value !== ""
+  );
 }
 
 // ------------------------------------------------------------------
@@ -82,13 +91,16 @@ function getHistorialFiltrado() {
   const historial = JSON.parse(localStorage.getItem(HISTORIAL_KEY) || "[]");
   const texto = searchInput.value.trim().toLowerCase();
   const tipo = filterTipo.value;
-  const fecha = filterFecha.value; // formato YYYY-MM-DD, igual al de item.fecha (ISO)
+  const fechaDesde = filterFechaDesde.value; // formato YYYY-MM-DD
+  const fechaHasta = filterFechaHasta.value;
 
   return historial.filter((item) => {
+    const fechaItem = item.fecha.slice(0, 10);
     const coincideTexto = !texto || (item.nombreCliente || "").toLowerCase().includes(texto);
     const coincideTipo = tipo === "todos" || item.accion === tipo;
-    const coincideFecha = !fecha || item.fecha.slice(0, 10) === fecha;
-    return coincideTexto && coincideTipo && coincideFecha;
+    const coincideDesde = !fechaDesde || fechaItem >= fechaDesde;
+    const coincideHasta = !fechaHasta || fechaItem <= fechaHasta;
+    return coincideTexto && coincideTipo && coincideDesde && coincideHasta;
   });
 }
 

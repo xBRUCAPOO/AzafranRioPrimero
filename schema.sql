@@ -4,9 +4,6 @@
 -- Ejecutar completo una sola vez (por ejemplo: mysql -u root -p < schema.sql)
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS gestor_clientes CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci;
-USE gestor_clientes;
-
 -- Tabla "Datos del Cliente"
 CREATE TABLE IF NOT EXISTS clientes (
   id INT AUTO_INCREMENT PRIMARY KEY,

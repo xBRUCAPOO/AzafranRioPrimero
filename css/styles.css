@@ -39,6 +39,13 @@
   /* Línea divisoria OSCURA (más marcada que --color-border) para separar
      datos dentro de una misma sección, como en el perfil del cliente */
   --color-divider: rgba(43, 36, 50, 0.18);
+
+  /* NUEVO: gris oscuro para datos "sin cargar" (campos vacíos de un
+     cliente en perfil.html) y para el indicador de base de datos del
+     footer cuando no hay nada que informar. Más apagado que
+     --color-text-secondary a propósito, para que se note que ese dato
+     falta */
+  --color-muted: #9993a0;
 }
 
 /* Se agranda un poco toda la interfaz: la base pasa de 16px (por defecto
@@ -57,6 +64,7 @@ html[data-theme='dark'] {
   --color-text-secondary: #a99fb2;
   --color-shadow: rgba(0, 0, 0, 0.35);
   --color-divider: rgba(255, 255, 255, 0.16);
+  --color-muted: #6b6473;
 }
 
 /* NOTA: antes había una regla @media (prefers-reduced-motion: reduce) acá
@@ -482,6 +490,77 @@ h1, h2, legend {
 .fab:active { transform: scale(0.96); transition-duration: 90ms; }
 .fab .material-symbols-outlined { font-size: 22px; }
 
+/* Botón "Generar Planilla": mismo look que "Nuevo cliente" (.fab) pero
+   anclado abajo a la IZQUIERDA en vez de a la derecha */
+.fab--left { left: 32px; right: auto; }
+
+/* ============================================================
+   MODO SELECCIÓN (elegir clientes para exportar a Excel)
+   Al activarlo (botón "Generar Planilla") aparece un checkbox en cada
+   tarjeta de cliente y una barra flotante abajo con la cantidad elegida.
+   ============================================================ */
+.client-card__checkbox {
+  display: none; /* solo visible en modo selección, ver .selection-mode */
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-accent); /* tilde del checkbox en el morado de la marca */
+  cursor: pointer;
+}
+.app.selection-mode .client-card__checkbox { display: inline-flex; }
+/* En modo selección, la tarjeta ya no navega al perfil al hacer clic:
+   se resalta en vez de eso al quedar marcada */
+.app.selection-mode .client-card.is-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+/* Barra flotante fija abajo, centrada, con la cantidad de clientes
+   elegidos y los botones para cancelar o continuar a la vista previa */
+.selection-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 48px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  box-shadow: var(--shadow-elevated);
+  z-index: 40;
+  animation: card-in var(--transition-base) both;
+}
+.selection-bar__count { font-weight: 700; color: var(--color-accent); font-size: 14px; }
+
+/* ============================================================
+   PANTALLA DE CARGA (spinner) mientras se espera a la base de datos
+   ============================================================ */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 90px 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  animation: fade-in var(--transition-base);
+}
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent); /* el segmento que gira, en el morado de la marca */
+  border-radius: 50%;
+  animation: spinner-girar 0.7s linear infinite;
+}
+@keyframes spinner-girar { to { transform: rotate(360deg); } }
+/* Spinner chico, para usar al lado de un texto (ej. "Cargando..." del perfil) */
+.spinner--sm { width: 20px; height: 20px; border-width: 2px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+
 /* ============================================================
    FOOTER (discreto, esquina inferior izquierda, con línea superior)
    ============================================================ */
@@ -497,11 +576,68 @@ h1, h2, legend {
   color: var(--color-text-secondary);
   opacity: 0.75;
   display: flex;
+  align-items: center;
   gap: 6px;
   pointer-events: none;
+  z-index: 15;
 }
 .footer__brand { font-family: var(--font-heading); font-weight: 600; }
 .footer__sep { opacity: 0.6; }
+
+/* ============================================================
+   INDICADOR DE CONEXIÓN A LA BASE DE DATOS (footer, abajo a la derecha)
+   Verde + ícono de base de datos = conectada. Rojo + ícono tachado =
+   sin conexión (se están mostrando datos de prueba). El resto del
+   footer tiene pointer-events:none (es solo texto informativo), así
+   que acá se reactivan a propósito para poder mostrar el tooltip al
+   pasar el mouse por encima.
+   ============================================================ */
+.footer-db {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  pointer-events: auto;
+  opacity: 1;
+  cursor: default;
+}
+.footer-db__icon { font-size: 16px; }
+.footer-db__text { font-weight: 700; }
+
+/* Conectada: verde. Sin conexión: rojo. Mientras se comprueba (o si un
+   dato puntual no está disponible): gris oscuro, ver --color-muted */
+.footer-db--ok .footer-db__icon,
+.footer-db--ok .footer-db__text { color: var(--color-success); }
+.footer-db--error .footer-db__icon,
+.footer-db--error .footer-db__text { color: var(--color-error); }
+.footer-db--checking .footer-db__icon,
+.footer-db--checking .footer-db__text { color: var(--color-muted); }
+
+/* Ventanita flotante ("tooltip") que avisa que los datos son de prueba */
+.footer-db__tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-elevated);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+.footer-db:hover .footer-db__tooltip,
+.footer-db:focus-within .footer-db__tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* ============================================================
    MODAL (alta / edición de cliente)
@@ -510,6 +646,10 @@ h1, h2, legend {
 .modal__overlay {
   position: absolute; inset: 0;
   background: rgba(20, 16, 24, 0.45);
+  /* Difumina todo lo que queda atrás (el listado, el perfil, etc.) para
+     que el foco quede claramente puesto en la ventana flotante */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   animation: fade-in var(--transition-base);
 }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -555,6 +695,20 @@ h1, h2, legend {
   font-weight: 600;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
+}
+
+/* Dato que el cliente NO tiene cargado: ícono y valor en gris oscuro
+   (--color-muted) para que se note de un vistazo que falta ese dato */
+.view-item--empty .material-symbols-outlined { color: var(--color-muted); }
+.view-item--empty .view-item__value { color: var(--color-muted); }
+
+/* Edad actual, calculada a partir de la fecha de nacimiento: va entre
+   paréntesis, en gris, al lado de la fecha (ver perfil.js: edadHtml()) */
+.view-item__age {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: 4px;
 }
 
 /* Botón para copiar un dato individual, al lado de cada campo */
@@ -836,6 +990,9 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
   align-items: center;
   justify-content: center;
   background: rgba(20, 16, 24, 0.45);
+  /* Mismo difuminado de fondo que el modal de alta/edición */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   animation: fade-in var(--transition-base);
 }
 .confirm-card__panel {
@@ -913,38 +1070,165 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 .historial-filter-panel {
-  min-width: 220px;
+  min-width: 240px;
 }
-.historial-filter-panel .floating-panel__field input[type="date"] {
+
+/* Estilo genérico para cualquier input de texto/fecha dentro de un panel
+   de filtro flotante (usado en el filtro de clientes de index.html:
+   profesión, referente, fecha de alta desde/hasta; y en el de
+   historial.html: fecha desde/hasta) */
+.floating-panel__field input[type="date"],
+.floating-panel__field input[type="text"] {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-family: var(--font-body);
+  font-size: 13px;
 }
+.floating-panel__field input[type="date"]:focus,
+.floating-panel__field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+/* Un rango de fecha (desde/hasta) queda en la misma fila para no alargar
+   el panel innecesariamente */
+.floating-panel__field--range { flex-direction: row; align-items: center; gap: 8px; }
+.floating-panel__field--range input { flex: 1; min-width: 0; }
+.floating-panel__field--range span.range-sep { font-size: 11px; color: var(--color-text-secondary); }
 
-/* Menús desplegables (<select>) más prolijos: se oculta la flechita nativa
-   del navegador y se pone un ícono propio a la derecha. Este bloque va
-   AL FINAL a propósito, para ganarle en la cascada a ".field select" y
-   ".floating-panel__field select" (misma especificidad, gana el que
-   está más abajo en el archivo) */
-.select-wrap { position: relative; }
-.select-wrap select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  padding-right: 40px;
+/* ============================================================
+   DESPLEGABLE PROPIO (reemplaza los <select> nativos)
+   Se usa en "Estado civil" (formulario y filtro) y en el filtro de
+   "Tipo de movimiento" del historial. Un <select> nativo no permite
+   poner un ícono en cada opción ni elegir el color de la opción
+   resaltada (Chrome/Windows siempre la pinta de celeste), así que se
+   arma el menú a mano con un <ul> flotante. El valor real sigue
+   viviendo en un <input type="hidden"> con el mismo id que antes tenía
+   el <select>, así el resto del código (filtros, formularios) no
+   necesita cambiar cómo LEE el valor. El comportamiento de abrir/cerrar
+   y elegir una opción vive en js/custom-select.js. */
+.custom-select { position: relative; }
+
+.custom-select__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
   cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.select-wrap__icon {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none; /* para que el click pase directo al <select> de abajo */
+.custom-select__trigger:hover { border-color: var(--color-accent); }
+.custom-select__trigger[aria-expanded='true'] {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+.custom-select__trigger-icon { font-size: 18px; color: var(--color-accent); flex-shrink: 0; }
+.custom-select__trigger-text {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* La flechita queda SIEMPRE pegada adentro del control (no suelta al lado) */
+.custom-select__arrow {
+  font-size: 20px;
   color: var(--color-accent);
-  font-size: 21px;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+.custom-select__trigger[aria-expanded='true'] .custom-select__arrow { transform: rotate(180deg); }
+
+.custom-select__options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-elevated);
+  padding: 6px;
+  z-index: 35;
+  animation: panel-in var(--transition-base);
+}
+.custom-select__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.custom-select__option .material-symbols-outlined { font-size: 18px; color: var(--color-text-secondary); }
+.custom-select__option:hover { background: var(--color-surface-hover); }
+/* Opción elegida: el morado de la marca, en vez del celeste nativo del navegador */
+.custom-select__option.selected { background: var(--color-accent); color: #fff; }
+.custom-select__option.selected .material-symbols-outlined { color: #fff; }
+
+/* ============================================================
+   PÁGINA DE EXPORTACIÓN (exportar.html)
+   Vista previa de la planilla antes de bajar el archivo .xlsx.
+   ============================================================ */
+.exportar-content { padding-top: 8px; }
+.exportar-intro { color: var(--color-text-secondary); font-size: 14px; margin: 0 0 20px; }
+.exportar-intro strong { color: var(--color-text-primary); }
+
+/* Tabla de vista previa, con scroll horizontal propio para no romper el
+   layout si hay muchas columnas (copropietarios incluidos) */
+.exportar-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 100px; /* deja lugar para la barra de acciones fija */
+}
+.exportar-table { border-collapse: collapse; width: 100%; font-size: 13px; white-space: nowrap; }
+.exportar-table th, .exportar-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--color-border); }
+.exportar-table th {
+  background: var(--color-accent);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+.exportar-table tr:last-child td { border-bottom: none; }
+.exportar-table tr:nth-child(even) td { background: var(--color-surface-hover); }
+
+/* Barra de acciones fija abajo, igual criterio que perfil.html */
+.exportar-actions-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 58px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  box-shadow: var(--shadow-elevated);
+  z-index: 40;
 }
 
 /* ============================================================
@@ -963,4 +1247,14 @@ html[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
   .coowner-row { grid-template-columns: 1fr 1fr; }
   .perfil-grid { grid-template-columns: 1fr; }
   .perfil-actions-bar { width: calc(100% - 32px); bottom: 74px; }
+  .exportar-actions-bar { width: calc(100% - 32px); bottom: 74px; flex-wrap: wrap; justify-content: center; }
+  /* En mobile los dos botones flotantes (Nuevo cliente / Generar Planilla)
+     no entran uno al lado del otro: se apilan verticalmente */
+  .fab { bottom: 48px; }
+  .fab--left { bottom: 112px; }
+  .selection-bar { width: calc(100% - 32px); flex-wrap: wrap; justify-content: center; text-align: center; }
+  /* El tooltip del footer se desborda por izquierda si queda pegado a la
+     derecha en una pantalla angosta: se centra en vez de eso */
+  .footer-db__tooltip { right: auto; left: 50%; transform: translate(-50%, 4px); width: 200px; }
+  .footer-db:hover .footer-db__tooltip, .footer-db:focus-within .footer-db__tooltip { transform: translate(-50%, 0); }
 }

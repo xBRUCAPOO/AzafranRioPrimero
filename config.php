@@ -1,20 +1,27 @@
 <?php
 /**
  * config.php
- * Datos de conexión a la base de datos MySQL "gestor_clientes".
- * IMPORTANTE: completar $DB_HOST/$DB_USER/$DB_PASS según el servidor real
- * (en local con XAMPP/WAMP suele ser host="localhost", user="root", pass="").
+ * Datos de conexión a la base de datos MySQL.
+ *
+ * En Clever Cloud, al enlazar el add-on de MySQL a la aplicación, la
+ * plataforma inyecta automáticamente estas variables de entorno:
+ *   MYSQL_ADDON_HOST, MYSQL_ADDON_PORT, MYSQL_ADDON_DB,
+ *   MYSQL_ADDON_USER, MYSQL_ADDON_PASSWORD
+ * Por eso NO hay que escribir credenciales acá adentro: se leen con
+ * getenv(). Si esas variables no existen (por ejemplo, cuando se prueba
+ * en la compu con XAMPP), se usan los valores locales de respaldo.
  */
 
-$DB_HOST = "localhost";
-$DB_NAME = "gestor_clientes";
-$DB_USER = "root";
-$DB_PASS = "39302271";
+$DB_HOST = getenv('MYSQL_ADDON_HOST') ?: 'localhost';
+$DB_PORT = getenv('MYSQL_ADDON_PORT') ?: '3306';
+$DB_NAME = getenv('MYSQL_ADDON_DB') ?: 'gestor_clientes';
+$DB_USER = getenv('MYSQL_ADDON_USER') ?: 'root';
+$DB_PASS = getenv('MYSQL_ADDON_PASSWORD') ?: '';
 
 try {
     // PDO con modo de errores estricto para poder capturarlos en clientes.php
     $pdo = new PDO(
-        "mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4",
+        "mysql:host=$DB_HOST;port=$DB_PORT;dbname=$DB_NAME;charset=utf8mb4",
         $DB_USER,
         $DB_PASS
     );

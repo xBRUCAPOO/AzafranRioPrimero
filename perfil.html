@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Perfil del cliente — Gestor de Clientes</title>
 
+  <!-- Aplica el tema guardado ANTES de pintar la página (evita el flash
+       de tema claro al entrar con el modo oscuro activado). Ver el mismo
+       bloque, comentado en detalle, en index.html -->
+  <script>
+    (function () {
+      var tema = localStorage.getItem("gestorClientes_tema");
+      if (!tema) tema = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", tema);
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -20,6 +31,13 @@
 </head>
 <body>
   <div class="app app--perfil">
+    <!-- Marca "Gestor de Clientes": FIJA en la esquina superior izquierda
+         de la pantalla en TODAS las páginas, igual que en index.html -->
+    <div class="topbar__brand">
+      <span class="material-symbols-outlined topbar__brand-icon">diversity_3</span>
+      <h1 class="topbar__title">Gestor de Clientes</h1>
+    </div>
+
     <!-- Tuerca de ajustes: FIJA en la esquina superior derecha de la
          pantalla en TODAS las páginas (index, perfil, historial) -->
     <div class="settings-fixed">
@@ -82,6 +100,12 @@
       <span>v1.1.0</span>
       <span class="footer__sep">·</span>
       <span>Actualizado 31/08/2026</span>
+
+      <div class="footer-db footer-db--checking" id="footerDb" tabindex="0">
+        <span class="material-symbols-outlined footer-db__icon" id="footerDbIcon">hourglass_empty</span>
+        <span class="footer-db__text" id="footerDbText">Comprobando conexión...</span>
+        <div class="footer-db__tooltip" id="footerDbTooltip">Comprobando el estado de la base de datos...</div>
+      </div>
     </footer>
   </div>
 
@@ -158,16 +182,36 @@
 
           <label class="field">
             <span>Estado civil</span>
-            <div class="select-wrap">
-              <select id="f_estadoCivil">
-                <option value="">Sin especificar</option>
-                <option value="Soltero/a">Soltero/a</option>
-                <option value="Casado/a">Casado/a</option>
-                <option value="Divorciado/a">Divorciado/a</option>
-                <option value="Viudo/a">Viudo/a</option>
-                <option value="Unión convivencial">Unión convivencial</option>
-              </select>
-              <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+            <!-- Desplegable propio: cada estado civil con su propio ícono
+                 (ver ICONOS_ESTADO_CIVIL en api-clientes.js) y la opción
+                 elegida resaltada en el morado de la marca -->
+            <div class="custom-select">
+              <button type="button" class="custom-select__trigger" aria-expanded="false">
+                <span class="material-symbols-outlined custom-select__trigger-icon">help</span>
+                <span class="custom-select__trigger-text">Sin especificar</span>
+                <span class="material-symbols-outlined custom-select__arrow">expand_more</span>
+              </button>
+              <ul class="custom-select__options hidden" role="listbox">
+                <li class="custom-select__option selected" data-value="" role="option">
+                  <span class="material-symbols-outlined">help</span> Sin especificar
+                </li>
+                <li class="custom-select__option" data-value="Soltero/a" role="option">
+                  <span class="material-symbols-outlined">person</span> Soltero/a
+                </li>
+                <li class="custom-select__option" data-value="Casado/a" role="option">
+                  <span class="material-symbols-outlined">favorite</span> Casado/a
+                </li>
+                <li class="custom-select__option" data-value="Divorciado/a" role="option">
+                  <span class="material-symbols-outlined">heart_broken</span> Divorciado/a
+                </li>
+                <li class="custom-select__option" data-value="Viudo/a" role="option">
+                  <span class="material-symbols-outlined">local_florist</span> Viudo/a
+                </li>
+                <li class="custom-select__option" data-value="Unión convivencial" role="option">
+                  <span class="material-symbols-outlined">family_restroom</span> Unión convivencial
+                </li>
+              </ul>
+              <input type="hidden" id="f_estadoCivil" value="" />
             </div>
           </label>
 
@@ -225,7 +269,9 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="js/api-clientes.js"></script>
+  <script src="js/custom-select.js"></script>
   <script src="js/theme-switch.js"></script>
+  <script src="js/db-status.js"></script>
   <script src="js/perfil.js"></script>
 </body>
 </html>

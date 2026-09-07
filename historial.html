@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Historial de movimientos — Gestor de Clientes</title>
 
+  <!-- Aplica el tema guardado ANTES de pintar la página (evita el flash
+       de tema claro al entrar con el modo oscuro activado). Ver el mismo
+       bloque, comentado en detalle, en index.html -->
+  <script>
+    (function () {
+      var tema = localStorage.getItem("gestorClientes_tema");
+      if (!tema) tema = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", tema);
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -20,6 +31,13 @@
 </head>
 <body>
   <div class="app">
+    <!-- Marca "Gestor de Clientes": FIJA en la esquina superior izquierda
+         de la pantalla en TODAS las páginas, igual que en index.html -->
+    <div class="topbar__brand">
+      <span class="material-symbols-outlined topbar__brand-icon">diversity_3</span>
+      <h1 class="topbar__title">Gestor de Clientes</h1>
+    </div>
+
     <!-- Tuerca de ajustes: FIJA en la esquina superior derecha de la
          pantalla en TODAS las páginas (index, perfil, historial) -->
     <div class="settings-fixed">
@@ -73,19 +91,39 @@
             <p class="floating-panel__title">Filtrar movimientos</p>
             <label class="floating-panel__field">
               <span>Tipo de movimiento</span>
-              <div class="select-wrap">
-                <select id="historialFilterTipo">
-                  <option value="todos">Todos</option>
-                  <option value="alta">Altas</option>
-                  <option value="edicion">Ediciones</option>
-                  <option value="baja">Bajas</option>
-                </select>
-                <span class="material-symbols-outlined select-wrap__icon">expand_more</span>
+              <!-- Desplegable propio: mismos íconos que ya se usan en cada
+                   ítem del historial (ver ICONOS en historial.js) -->
+              <div class="custom-select">
+                <button type="button" class="custom-select__trigger" aria-expanded="false">
+                  <span class="material-symbols-outlined custom-select__trigger-icon">checklist</span>
+                  <span class="custom-select__trigger-text">Todos</span>
+                  <span class="material-symbols-outlined custom-select__arrow">expand_more</span>
+                </button>
+                <ul class="custom-select__options hidden" role="listbox">
+                  <li class="custom-select__option selected" data-value="todos" role="option">
+                    <span class="material-symbols-outlined">checklist</span> Todos
+                  </li>
+                  <li class="custom-select__option" data-value="alta" role="option">
+                    <span class="material-symbols-outlined">person_add</span> Altas
+                  </li>
+                  <li class="custom-select__option" data-value="edicion" role="option">
+                    <span class="material-symbols-outlined">edit</span> Ediciones
+                  </li>
+                  <li class="custom-select__option" data-value="baja" role="option">
+                    <span class="material-symbols-outlined">person_remove</span> Bajas
+                  </li>
+                </ul>
+                <input type="hidden" id="historialFilterTipo" value="todos" />
               </div>
             </label>
+            <!-- Rango de fecha (antes era una fecha exacta, muy restrictiva) -->
             <label class="floating-panel__field">
               <span>Fecha</span>
-              <input type="date" id="historialFilterFecha" />
+              <div class="floating-panel__field--range">
+                <input type="date" id="historialFilterFechaDesde" aria-label="Fecha desde" />
+                <span class="range-sep">a</span>
+                <input type="date" id="historialFilterFechaHasta" aria-label="Fecha hasta" />
+              </div>
             </label>
             <button id="historialFilterClear" class="text-btn">Limpiar filtros</button>
           </div>
@@ -111,10 +149,18 @@
       <span>v1.1.0</span>
       <span class="footer__sep">·</span>
       <span>Actualizado 31/08/2026</span>
+
+      <div class="footer-db footer-db--checking" id="footerDb" tabindex="0">
+        <span class="material-symbols-outlined footer-db__icon" id="footerDbIcon">hourglass_empty</span>
+        <span class="footer-db__text" id="footerDbText">Comprobando conexión...</span>
+        <div class="footer-db__tooltip" id="footerDbTooltip">Comprobando el estado de la base de datos...</div>
+      </div>
     </footer>
   </div>
 
+  <script src="js/custom-select.js"></script>
   <script src="js/theme-switch.js"></script>
+  <script src="js/db-status.js"></script>
   <script src="js/historial.js"></script>
 </body>
 </html>

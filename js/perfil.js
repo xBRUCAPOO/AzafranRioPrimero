@@ -68,16 +68,37 @@ function formatearFecha(fecha) {
   return `${dia}/${mes}/${anio}`;
 }
 
+// Calcula la edad actual (en años cumplidos) a partir de la fecha de
+// nacimiento. Devuelve null si no hay fecha cargada.
+function calcularEdad(fechaNacimiento) {
+  if (!fechaNacimiento) return null;
+  const nacimiento = new Date(fechaNacimiento + "T00:00:00");
+  if (isNaN(nacimiento.getTime())) return null;
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const noCumplioAnioTodavia =
+    hoy.getMonth() < nacimiento.getMonth() ||
+    (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+  if (noCumplioAnioTodavia) edad--;
+  return edad;
+}
+
 // ------------------------------------------------------------------
 // Carga y muestra del perfil (con botón de copiar en cada dato)
 // ------------------------------------------------------------------
-function campoVista(icono, etiqueta, valor) {
+// Arma un dato del perfil. "opciones.vacio" pinta el ícono y el valor en
+// gris oscuro cuando el cliente no tiene ese dato cargado (en vez de
+// adivinarlo a partir del texto ya formateado). "opciones.extra" agrega
+// HTML de confianza al lado del valor, por ejemplo la edad entre
+// paréntesis junto a la fecha de nacimiento.
+function campoVista(icono, etiqueta, valor, opciones = {}) {
+  const { vacio = !valor, extra = "" } = opciones;
   return `
-    <div class="view-item">
+    <div class="view-item${vacio ? " view-item--empty" : ""}">
       <span class="material-symbols-outlined">${icono}</span>
       <div class="view-item__text">
         <span class="view-item__label">${etiqueta}</span>
-        <span class="view-item__value">${escapeHtml(valor) || "Sin datos"}</span>
+        <span class="view-item__value">${escapeHtml(valor) || "Sin datos"}${extra}</span>
       </div>
       <button type="button" class="copy-btn" data-copy="${escapeHtml(valor || "")}" data-etiqueta="${etiqueta}" aria-label="Copiar ${etiqueta}">
         <span class="material-symbols-outlined">content_copy</span>
@@ -91,6 +112,8 @@ async function cargarPerfil() {
     mostrarToast("Falta el id del cliente en la URL.", "error");
     return;
   }
+  // Pantalla de carga mientras se espera la respuesta del servidor
+  perfilGrid.innerHTML = `<div class="loading-state" style="grid-column: 1 / -1;"><span class="spinner"></span>Cargando datos del cliente...</div>`;
   try {
     clienteActual = await apiObtenerUno(clienteId);
   } catch (err) {
@@ -106,15 +129,26 @@ function renderPerfil() {
   perfilNombre.textContent = c.nombre;
   perfilSexIcon.textContent = c.sexo === "F" ? "face_3" : "face";
 
+  // Edad actual, para mostrar entre paréntesis y en gris al lado de la
+  // fecha de nacimiento (ver .view-item__age en el CSS)
+  const edad = calcularEdad(c.fecha_nacimiento);
+  const edadHtml = edad !== null ? ` <span class="view-item__age">(${edad} años)</span>` : "";
+
   perfilGrid.innerHTML = [
-    campoVista(c.sexo === "F" ? "face_3" : "face", "Sexo", c.sexo === "F" ? "Mujer" : "Hombre"),
+    // El sexo siempre tiene un valor (M o F): nunca se marca como vacío
+    campoVista(c.sexo === "F" ? "face_3" : "face", "Sexo", c.sexo === "F" ? "Mujer" : "Hombre", { vacio: false }),
     campoVista("badge", "DNI", c.dni),
     campoVista("assignment_ind", "CUIL", c.cuil),
-    campoVista("cake", "Fecha de nacimiento", formatearFecha(c.fecha_nacimiento)),
+    campoVista("cake", "Fecha de nacimiento", formatearFecha(c.fecha_nacimiento), {
+      vacio: !c.fecha_nacimiento,
+      extra: edadHtml,
+    }),
     campoVista("call", "Teléfono", c.telefono),
     campoVista("mail", "Mail", c.mail),
-    campoVista("event_available", "Fecha de alta", formatearFecha(c.fecha_alta)),
-    campoVista("favorite", "Estado civil", c.estado_civil),
+    campoVista("event_available", "Fecha de alta", formatearFecha(c.fecha_alta), { vacio: !c.fecha_alta }),
+    // Ícono según el estado civil puntual (ver ICONOS_ESTADO_CIVIL en
+    // api-clientes.js): Casado/a, Soltero/a, Divorciado/a, Viudo/a, etc.
+    campoVista(iconoEstadoCivil(c.estado_civil), "Estado civil", c.estado_civil),
     campoVista("work", "Profesión", c.profesion),
     campoVista("home", "Dirección", c.direccion),
     campoVista("groups", "Referente", c.referente),
@@ -231,7 +265,9 @@ editBtn.addEventListener("click", () => {
   document.getElementById("f_telefono").value = c.telefono;
   document.getElementById("f_mail").value = c.mail;
   document.getElementById("f_fechaAlta").value = c.fecha_alta || "";
-  document.getElementById("f_estadoCivil").value = c.estado_civil || "";
+  // Desplegable propio de Estado civil: hay que sincronizar el texto/ícono
+  // visibles además de completar el <input> oculto
+  CustomSelect.setValueById("f_estadoCivil", c.estado_civil || "");
   document.getElementById("f_profesion").value = c.profesion;
   document.getElementById("f_direccion").value = c.direccion;
   document.getElementById("f_referente").value = c.referente;
