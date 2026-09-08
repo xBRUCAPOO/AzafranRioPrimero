@@ -12,4 +12,4 @@ compatibility_date = "2026-09-07"
 [[d1_databases]]
 binding = "DB"
 database_name = "gestor-clientes-db"
-database_id = "PEGAR_ACA_EL_ID_QUE_IMPRIME_WRANGLER_D1_CREATE"
+database_id = "1f858ab4-c926-40a0-807a-90eaad8c20b3"
