@@ -1,0 +1,15 @@
+# wrangler.toml
+# Configuración del Worker "gestor-clientes-api". Ver worker/README-DEPLOY.md
+# para el paso a paso de cómo crear la base D1 y desplegar esto.
+
+name = "gestor-clientes-api"
+main = "src/index.js"
+compatibility_date = "2026-09-07"
+
+# Enlace a la base D1: "DB" es el nombre que usa worker/src/index.js
+# (env.DB). El "database_id" se completa DESPUÉS de crear la base con
+# `wrangler d1 create gestor-clientes-db` (el comando lo imprime solo).
+[[d1_databases]]
+binding = "DB"
+database_name = "gestor-clientes-db"
+database_id = "PEGAR_ACA_EL_ID_QUE_IMPRIME_WRANGLER_D1_CREATE"

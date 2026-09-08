@@ -152,6 +152,8 @@ function renderPerfil() {
     campoVista("work", "Profesión", c.profesion),
     campoVista("home", "Dirección", c.direccion),
     campoVista("groups", "Referente", c.referente),
+    // Nuevo campo: Sucursal (siempre "Rio Primero" por ahora)
+    campoVista("storefront", "Sucursal", c.sucursal_nombre),
   ].join("");
 
   const coprop = c.copropietarios || [];
@@ -205,6 +207,7 @@ copyAllBtn.addEventListener("click", () => {
     `Profesión: ${c.profesion || ""}`,
     `Dirección: ${c.direccion || ""}`,
     `Referente: ${c.referente || ""}`,
+    `Sucursal: ${c.sucursal_nombre || ""}`,
   ].join("\n");
   navigator.clipboard.writeText(texto);
   mostrarToast("Perfil completo copiado.", "success");
@@ -279,6 +282,9 @@ editBtn.addEventListener("click", () => {
   document.getElementById("f_profesion").value = c.profesion;
   document.getElementById("f_direccion").value = c.direccion;
   document.getElementById("f_referente").value = c.referente;
+  // Nuevo campo Sucursal: si el cliente todavía no lo tenía cargado
+  // (clientes viejos), se completa con el valor por defecto
+  document.getElementById("f_sucursal").value = c.sucursal_nombre || "Rio Primero";
 
   coownersListEl.innerHTML = "";
   (c.copropietarios || []).forEach((co) => crearFilaCoowner(co));
@@ -362,6 +368,7 @@ clientForm.addEventListener("submit", async (e) => {
     profesion: document.getElementById("f_profesion").value.trim(),
     direccion: document.getElementById("f_direccion").value.trim(),
     referente: document.getElementById("f_referente").value.trim(),
+    sucursalNombre: document.getElementById("f_sucursal").value.trim() || "Rio Primero",
     copropietarios: coownersForm,
   };
 
@@ -407,7 +414,7 @@ confirmDeleteAccept.addEventListener("click", async () => {
   try {
     await apiEliminar(clienteId, clienteActual.nombre);
     mostrarToast("Cliente eliminado.", "info");
-    setTimeout(() => (window.location.href = "index.html"), 900);
+    setTimeout(() => (window.location.href = "../index.html"), 900);
   } catch (err) {
     mostrarToast("No se pudo eliminar el cliente.", "error");
     console.error(err);

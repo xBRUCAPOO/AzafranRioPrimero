@@ -66,7 +66,7 @@ const sexoLabel = document.getElementById("f_sexoLabel");
 
 // Botón "Historial" (donde antes estaba el título): lleva a historial.html
 historyBtn.addEventListener("click", () => {
-  window.location.href = "historial.html";
+  window.location.href = "paginas/historial.html";
 });
 
 // Vuelve a traer la lista completa desde MySQL y refresca la pantalla.
@@ -273,7 +273,7 @@ function renderLista() {
         return;
       }
       // Fuera del modo selección, se navega de página completa al perfil
-      window.location.href = `perfil.html?id=${cliente.id}`;
+      window.location.href = `paginas/perfil.html?id=${cliente.id}`;
     });
     clientListEl.appendChild(li);
   });
@@ -293,7 +293,6 @@ function actualizarSeleccionCliente(li, checkbox) {
   else clientesSeleccionados.delete(id);
   li.classList.toggle("is-selected", checkbox.checked);
   selectionCount.textContent = clientesSeleccionados.size;
-  selectionContinue.disabled = clientesSeleccionados.size === 0;
 }
 
 function iniciarModoSeleccion() {
@@ -302,7 +301,6 @@ function iniciarModoSeleccion() {
   appEl.classList.add("selection-mode");
   selectionBar.classList.remove("hidden");
   selectionCount.textContent = "0";
-  selectionContinue.disabled = true;
   renderLista(); // vuelve a pintar la lista para que aparezcan los checkboxes
 }
 
@@ -317,12 +315,23 @@ function salirModoSeleccion() {
 planillaBtn.addEventListener("click", iniciarModoSeleccion);
 selectionCancel.addEventListener("click", salirModoSeleccion);
 
-// "Continuar": guarda los clientes elegidos y navega a la vista previa
+// "Continuar": guarda los clientes elegidos y navega a la vista previa.
+// Antes el botón quedaba "disabled" sin ningún aviso; ahora siempre se
+// puede tocar, y si no hay nadie elegido se muestra un error explícito.
 selectionContinue.addEventListener("click", () => {
-  if (clientesSeleccionados.size === 0) return;
+  if (clientesSeleccionados.size === 0) {
+    mostrarToast("Elegí al menos un cliente antes de continuar.", "error");
+    // Vibración + destello rojo de medio segundo en la barra, para que se
+    // note de un vistazo qué elemento tiene el problema
+    selectionBar.classList.remove("selection-bar--error");
+    void selectionBar.offsetWidth; // fuerza a reiniciar la animación si se hace doble clic rápido
+    selectionBar.classList.add("selection-bar--error");
+    setTimeout(() => selectionBar.classList.remove("selection-bar--error"), 500);
+    return;
+  }
   const elegidos = clientes.filter((c) => clientesSeleccionados.has(String(c.id)));
   sessionStorage.setItem("gestorClientes_exportSeleccion", JSON.stringify(elegidos));
-  window.location.href = "exportar.html";
+  window.location.href = "paginas/exportar.html";
 });
 
 function escapeHtml(str) {
@@ -419,6 +428,8 @@ function abrirModalNuevo() {
   // El switch de sexo vuelve a "Hombre" (estado por defecto)
   sexoCheckbox.checked = false;
   actualizarSexoSwitch();
+  // Nuevo campo Sucursal: siempre arranca en "Rio Primero"
+  document.getElementById("f_sucursal").value = "Rio Primero";
   // clientForm.reset() ya vació los <input> ocultos de fecha, pero no
   // actualiza el texto visible de los calendarios propios: se sincroniza a mano
   CustomDate.syncById("f_fechaNacimiento");
@@ -513,6 +524,7 @@ clientForm.addEventListener("submit", async (e) => {
     profesion: document.getElementById("f_profesion").value.trim(),
     direccion: document.getElementById("f_direccion").value.trim(),
     referente: document.getElementById("f_referente").value.trim(),
+    sucursalNombre: document.getElementById("f_sucursal").value.trim() || "Rio Primero",
     copropietarios: coownersForm,
   };
 

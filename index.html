@@ -64,12 +64,14 @@
 
           <p class="floating-panel__title">Ayuda</p>
           <!-- Lleva al README del repositorio, con toda la documentación
-               técnica del proyecto para quien necesite tocar el código -->
+               técnica del proyecto para quien necesite tocar el código.
+               Ahora es un botón (.panel-link-btn) en vez de un simple <a>
+               de texto, con fondo un poco más oscuro que el panel -->
           <a
             href="https://github.com/xBRUCAPOO/AzafranRioPrimero#readme"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-btn"
+            class="panel-link-btn"
           >
             <span class="material-symbols-outlined">info</span> Información del proyecto
           </a>
@@ -161,19 +163,23 @@
               <span>Fecha de alta</span>
               <div class="floating-panel__field--range">
                 <div class="custom-date">
-                  <button type="button" class="custom-date__trigger" aria-expanded="false" aria-label="Fecha de alta desde">
-                    <span class="custom-date__trigger-text custom-date__trigger-text--vacio">dd/mm/aaaa</span>
-                    <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
-                  </button>
+                  <div class="custom-date__field">
+                    <input type="text" class="custom-date__input" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" aria-label="Fecha de alta desde" />
+                    <button type="button" class="custom-date__icon-btn" aria-expanded="false" aria-label="Abrir calendario: fecha de alta desde">
+                      <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                    </button>
+                  </div>
                   <div class="custom-date__panel hidden"></div>
                   <input type="date" id="filterFechaAltaDesde" class="hidden" />
                 </div>
                 <span class="range-sep">a</span>
                 <div class="custom-date">
-                  <button type="button" class="custom-date__trigger" aria-expanded="false" aria-label="Fecha de alta hasta">
-                    <span class="custom-date__trigger-text custom-date__trigger-text--vacio">dd/mm/aaaa</span>
-                    <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
-                  </button>
+                  <div class="custom-date__field">
+                    <input type="text" class="custom-date__input" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" aria-label="Fecha de alta hasta" />
+                    <button type="button" class="custom-date__icon-btn" aria-expanded="false" aria-label="Abrir calendario: fecha de alta hasta">
+                      <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                    </button>
+                  </div>
                   <div class="custom-date__panel hidden"></div>
                   <input type="date" id="filterFechaAltaHasta" class="hidden" />
                 </div>
@@ -220,10 +226,12 @@
     <div id="selectionBar" class="selection-bar hidden">
       <span class="material-symbols-outlined" style="color: var(--color-accent)">checklist</span>
       <span class="selection-bar__count"><span id="selectionCount">0</span> seleccionados</span>
-      <button type="button" id="selectionCancel" class="btn btn--ghost">Cancelar</button>
-      <button type="button" id="selectionContinue" class="btn btn--primary" disabled>
-        <span class="material-symbols-outlined">arrow_forward</span> Continuar
-      </button>
+      <div class="selection-bar__actions">
+        <button type="button" id="selectionCancel" class="btn btn--ghost">Cancelar</button>
+        <button type="button" id="selectionContinue" class="btn btn--primary">
+          <span class="material-symbols-outlined">arrow_forward</span> Continuar
+        </button>
+      </div>
     </div>
 
     <!-- Footer discreto, abajo a la izquierda, con línea superior. El
@@ -232,7 +240,7 @@
     <footer class="footer">
       <span class="footer__brand">xBRUCAPOO</span>
       <span class="footer__sep">·</span>
-      <span>v1.1.5</span>
+      <span>v2.0.0</span>
       <span class="footer__sep">·</span>
       <span>Actualizado 7/9/2026</span>
 
@@ -303,10 +311,12 @@
                  (cuyo popup lo dibuja el sistema operativo). Ver
                  js/custom-date.js -->
             <div class="custom-date">
-              <button type="button" class="custom-date__trigger" aria-expanded="false">
-                <span class="custom-date__trigger-text custom-date__trigger-text--vacio">dd/mm/aaaa</span>
-                <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
-              </button>
+              <div class="custom-date__field">
+                <input type="text" class="custom-date__input" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" aria-label="Fecha de nacimiento" />
+                <button type="button" class="custom-date__icon-btn" aria-expanded="false" aria-label="Abrir calendario">
+                  <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                </button>
+              </div>
               <div class="custom-date__panel hidden"></div>
               <input type="date" id="f_fechaNacimiento" class="hidden" />
             </div>
@@ -325,10 +335,12 @@
           <label class="field">
             <span>Fecha de alta</span>
             <div class="custom-date">
-              <button type="button" class="custom-date__trigger" aria-expanded="false">
-                <span class="custom-date__trigger-text custom-date__trigger-text--vacio">dd/mm/aaaa</span>
-                <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
-              </button>
+              <div class="custom-date__field">
+                <input type="text" class="custom-date__input" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" aria-label="Fecha de alta" />
+                <button type="button" class="custom-date__icon-btn" aria-expanded="false" aria-label="Abrir calendario">
+                  <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                </button>
+              </div>
               <div class="custom-date__panel hidden"></div>
               <input type="date" id="f_fechaAlta" class="hidden" />
             </div>
@@ -383,6 +395,14 @@
             <span>Referente</span>
             <input type="text" id="f_referente" maxlength="150" />
           </label>
+
+          <label class="field">
+            <span>Sucursal</span>
+            <!-- Nuevo campo pedido: siempre arranca en "Rio Primero" (la
+                 única sucursal existente por ahora), pero queda editable
+                 por si en el futuro se suma otra -->
+            <input type="text" id="f_sucursal" maxlength="100" value="Rio Primero" />
+          </label>
         </fieldset>
 
         <fieldset class="client-form__section">
@@ -408,6 +428,9 @@
   <!-- Aviso corto (toast) para confirmar acciones -->
   <div id="toast" class="toast hidden"></div>
 
+  <!-- config.js: URL del backend (Cloudflare Worker), usada por
+       api-clientes.js y db-status.js. Debe ir PRIMERO. -->
+  <script src="js/config.js"></script>
   <!-- api-clientes.js debe cargarse ANTES que app.js: contiene las
        funciones de la API, el modo demo, el toast y el registro de historial -->
   <script src="js/api-clientes.js"></script>

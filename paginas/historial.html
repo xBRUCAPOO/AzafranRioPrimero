@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial de movimientos — Gestor de Clientes</title>
+
+  <!-- Aplica el tema guardado ANTES de pintar la página (evita el flash
+       de tema claro al entrar con el modo oscuro activado). Ver el mismo
+       bloque, comentado en detalle, en index.html -->
+  <script>
+    (function () {
+      var tema = localStorage.getItem("gestorClientes_tema");
+      if (!tema) tema = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", tema);
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Raleway:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0"
+  />
+
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Marca "Gestor de Clientes": FIJA en la esquina superior izquierda
+         de la pantalla en TODAS las páginas, igual que en index.html -->
+    <div class="topbar__brand">
+      <span class="material-symbols-outlined topbar__brand-icon">diversity_3</span>
+      <h1 class="topbar__title">Gestor de Clientes</h1>
+    </div>
+
+    <!-- Tuerca de ajustes: FIJA en la esquina superior derecha de la
+         pantalla en TODAS las páginas (index, perfil, historial) -->
+    <div class="settings-fixed">
+      <div class="control-wrap">
+        <button id="settingsToggle" class="icon-btn" aria-label="Abrir ajustes" aria-expanded="false">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+        <div id="settingsPanel" class="floating-panel floating-panel--right hidden">
+          <p class="floating-panel__title">Apariencia</p>
+          <div class="theme-switch">
+            <span class="material-symbols-outlined theme-switch__icon">dark_mode</span>
+            <label class="switch" aria-label="Cambiar entre modo oscuro y claro">
+              <input type="checkbox" id="themeCheckbox" />
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+            <span class="material-symbols-outlined theme-switch__icon">light_mode</span>
+          </div>
+
+          <hr class="floating-panel__section-sep" />
+
+          <p class="floating-panel__title">Ayuda</p>
+          <!-- Lleva al README del repositorio, con toda la documentación
+               técnica del proyecto para quien necesite tocar el código -->
+          <a
+            href="https://github.com/xBRUCAPOO/AzafranRioPrimero#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="panel-link-btn"
+          >
+            <span class="material-symbols-outlined">info</span> Información del proyecto
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <header class="topbar topbar--perfil">
+      <button class="btn btn--ghost" onclick="window.location.href='../index.html'">
+        <span class="material-symbols-outlined">arrow_back</span> Volver al listado
+      </button>
+      <h1 class="historial-title">Historial de movimientos</h1>
+    </header>
+
+    <main class="content">
+      <!-- Buscador (por nombre de cliente) + filtro (tipo de movimiento y fecha) -->
+      <div class="historial-toolbar">
+        <div class="search-box">
+          <span class="material-symbols-outlined search-box__icon">search</span>
+          <input
+            id="historialSearch"
+            class="search-box__input"
+            type="text"
+            placeholder="Buscar por nombre de cliente..."
+            autocomplete="off"
+          />
+          <button id="historialSearchClear" class="search-box__clear hidden" type="button" aria-label="Limpiar búsqueda">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="control-wrap">
+          <button id="historialFilterToggle" class="icon-btn" aria-label="Filtrar movimientos" aria-expanded="false">
+            <span class="material-symbols-outlined">filter_list</span>
+          </button>
+          <div id="historialFilterPanel" class="floating-panel floating-panel--right historial-filter-panel hidden">
+            <p class="floating-panel__title">Filtrar movimientos</p>
+            <label class="floating-panel__field">
+              <span>Tipo de movimiento</span>
+              <!-- Desplegable propio: mismos íconos que ya se usan en cada
+                   ítem del historial (ver ICONOS en historial.js) -->
+              <div class="custom-select">
+                <button type="button" class="custom-select__trigger" aria-expanded="false">
+                  <span class="material-symbols-outlined custom-select__trigger-icon">checklist</span>
+                  <span class="custom-select__trigger-text">Todos</span>
+                  <span class="material-symbols-outlined custom-select__arrow">expand_more</span>
+                </button>
+                <ul class="custom-select__options hidden" role="listbox">
+                  <li class="custom-select__option selected" data-value="todos" role="option">
+                    <span class="material-symbols-outlined">checklist</span> Todos
+                  </li>
+                  <li class="custom-select__option" data-value="alta" role="option">
+                    <span class="material-symbols-outlined">person_add</span> Altas
+                  </li>
+                  <li class="custom-select__option" data-value="edicion" role="option">
+                    <span class="material-symbols-outlined">edit</span> Ediciones
+                  </li>
+                  <li class="custom-select__option" data-value="baja" role="option">
+                    <span class="material-symbols-outlined">person_remove</span> Bajas
+                  </li>
+                </ul>
+                <input type="hidden" id="historialFilterTipo" value="todos" />
+              </div>
+            </label>
+            <!-- Rango de fecha (antes era una fecha exacta, muy restrictiva) -->
+            <label class="floating-panel__field">
+              <span>Fecha</span>
+              <div class="floating-panel__field--range">
+                <div class="custom-date">
+                  <div class="custom-date__field">
+                    <input type="text" class="custom-date__input" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" aria-label="Fecha desde" />
+                    <button type="button" class="custom-date__icon-btn" aria-expanded="false" aria-label="Abrir calendario: Fecha desde">
+                      <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                    </button>
+                  </div>
+                  <div class="custom-date__panel hidden"></div>
+                  <input type="date" id="historialFilterFechaDesde" class="hidden" />
+                </div>
+                <span class="range-sep">a</span>
+                <div class="custom-date">
+                  <div class="custom-date__field">
+                    <input type="text" class="custom-date__input" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="off" aria-label="Fecha hasta" />
+                    <button type="button" class="custom-date__icon-btn" aria-expanded="false" aria-label="Abrir calendario: Fecha hasta">
+                      <span class="material-symbols-outlined custom-date__icon">calendar_month</span>
+                    </button>
+                  </div>
+                  <div class="custom-date__panel hidden"></div>
+                  <input type="date" id="historialFilterFechaHasta" class="hidden" />
+                </div>
+              </div>
+            </label>
+            <button id="historialFilterClear" class="text-btn">Limpiar filtros</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aviso que aparece solo si hay una búsqueda o un filtro activo -->
+      <p id="historialFilterNotice" class="filter-notice hidden">
+        <span class="material-symbols-outlined">filter_alt</span>
+        Estás viendo resultados filtrados.
+      </p>
+
+      <ul id="historialList" class="historial-list" aria-live="polite"></ul>
+      <p id="historialEmpty" class="empty-state hidden">
+        <span class="material-symbols-outlined">history_toggle_off</span>
+        Todavía no se registraron movimientos en este navegador.
+      </p>
+    </main>
+
+    <footer class="footer">
+      <span class="footer__brand">xBRUCAPOO</span>
+      <span class="footer__sep">·</span>
+      <span>v2.0.0</span>
+      <span class="footer__sep">·</span>
+      <span>Actualizado 7/9/2026</span>
+
+      <div class="footer-db footer-db--checking" id="footerDb" tabindex="0">
+        <span class="material-symbols-outlined footer-db__icon" id="footerDbIcon">hourglass_empty</span>
+        <span class="footer-db__text" id="footerDbText">Comprobando conexión...</span>
+        <div class="footer-db__tooltip">
+          <span class="material-symbols-outlined footer-db__tooltip-icon">info</span>
+          <span id="footerDbTooltip">Comprobando el estado de la base de datos...</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- config.js: URL del backend (Cloudflare Worker). Debe ir PRIMERO. -->
+  <script src="../js/config.js"></script>
+  <script src="../js/custom-select.js"></script>
+  <script src="../js/custom-date.js"></script>
+  <script src="../js/theme-switch.js"></script>
+  <script src="../js/db-status.js"></script>
+  <script src="../js/historial.js"></script>
+</body>
+</html>

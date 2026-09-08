@@ -58,6 +58,7 @@ const COLUMNAS = [
   { titulo: "Profesión", valor: (c) => c.profesion || "" },
   { titulo: "Dirección", valor: (c) => c.direccion || "" },
   { titulo: "Referente", valor: (c) => c.referente || "" },
+  { titulo: "Sucursal", valor: (c) => c.sucursal_nombre || "" },
   { titulo: "Copropietario 1", valor: (c) => textoCopropietario((c.copropietarios || [])[0]) },
   { titulo: "Copropietario 2", valor: (c) => textoCopropietario((c.copropietarios || [])[1]) },
   { titulo: "Copropietario 3", valor: (c) => textoCopropietario((c.copropietarios || [])[2]) },
@@ -107,7 +108,18 @@ function cargarSeleccion() {
 function renderTabla() {
   const encabezado = COLUMNAS.map((col) => `<th>${col.titulo}</th>`).join("");
   const filas = clientesElegidos
-    .map((c) => `<tr>${COLUMNAS.map((col) => `<td>${escapeHtml(col.valor(c))}</td>`).join("")}</tr>`)
+    .map(
+      (c) =>
+        `<tr>${COLUMNAS.map((col) => {
+          const valor = col.valor(c);
+          // Celda sin dato cargado: se muestra "Sin datos" en gris (solo
+          // en la vista previa en pantalla; el .xlsx exportado sigue
+          // llevando la celda vacía, ver exportarAExcel más abajo)
+          return valor
+            ? `<td>${escapeHtml(valor)}</td>`
+            : `<td class="exportar-table__vacio">Sin datos</td>`;
+        }).join("")}</tr>`
+    )
     .join("");
 
   tableWrap.innerHTML = `

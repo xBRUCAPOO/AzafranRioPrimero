@@ -1,25 +1,26 @@
 /*
  * api-clientes.js
  * Lógica COMPARTIDA entre index.html (listado) y perfil.html (detalle):
- *   - Llamadas a la API REST en PHP (api/clientes.php).
- *   - "Modo demo": si la API no responde (todavía no hay servidor PHP/MySQL
- *     corriendo), se usan 4 clientes de prueba en memoria/sessionStorage,
- *     para poder probar toda la página sin backend.
+ *   - Llamadas a la API REST (ahora un Cloudflare Worker sobre D1, ver
+ *     worker/src/index.js; antes era api/clientes.php sobre MySQL).
+ *   - "Modo demo": si la API no responde, se usan clientes de prueba en
+ *     memoria/sessionStorage, para poder probar toda la página sin backend.
  *   - Un historial simple de acciones (alta/edición/baja) guardado en
  *     localStorage, que lee la página historial.html.
  *
- * Este archivo debe cargarse ANTES que app.js o perfil.js en el <script>.
+ * Este archivo debe cargarse ANTES que app.js o perfil.js, y DESPUÉS de
+ * config.js (que define la constante API_BASE con la URL del Worker).
  */
 
-const API_URL = "api/clientes.php"; // Endpoint del backend PHP
+const API_URL = `${API_BASE}/api/clientes`; // Endpoint del Worker
+const BULBOS_URL = `${API_BASE}/api/bulbos`; // Endpoint del Worker (ciclos de Bulbos)
 const DEMO_KEY = "gestorClientes_demoData"; // sessionStorage: copia de los datos de prueba durante esta sesión del navegador
 const HISTORIAL_KEY = "gestorClientes_historial"; // localStorage: registro de movimientos para historial.html
 
-// 2 clientes inventados (1 hombre, 1 mujer) para probar la página
-// (agregar, ver, editar, filtrar, eliminar) mientras no hay servidor PHP/MySQL
-// disponible. El nombre deja en claro que son datos de prueba, para que
-// nunca se confundan con un cliente real. Los ids empiezan en 9001 para
-// no chocar nunca con ids reales.
+// 3 clientes inventados para probar la página (agregar, ver, editar,
+// filtrar, eliminar) mientras no hay Worker/D1 disponible. El nombre deja
+// en claro que son datos de prueba. Los ids empiezan en 9001 para no
+// chocar nunca con ids reales.
 const MOCK_CLIENTES = [
   {
     id: 9001,
@@ -35,7 +36,9 @@ const MOCK_CLIENTES = [
     profesion: "Ingeniero Civil",
     direccion: "Av. Colón 1234, Córdoba",
     referente: "Estudio Jurídico Pérez",
+    sucursal_nombre: "Rio Primero",
     copropietarios: [{ id: 1, nombre: "Copropietario Prueba", dni: "30555666" }],
+    bulbos: [],
   },
   {
     id: 9002,
@@ -51,24 +54,28 @@ const MOCK_CLIENTES = [
     profesion: "Diseñadora Gráfica",
     direccion: "Calle San Martín 567, Córdoba",
     referente: "Inmobiliaria Del Sur",
+    sucursal_nombre: "Rio Primero",
     copropietarios: [],
+    bulbos: [],
   },
   {
-  id: 9003,
-  nombre: "Malany Anahi Almada ",
-  sexo: "F",
-  dni: "32444555",
-  cuil: "27324445551",
-  fecha_nacimiento: "2009-02-18",
-  telefono: "No se pero la amo",
-  mail: "MelyElAmorDeMiVida@gmail.com",
-  fecha_alta: "2026-02-20",
-  estado_civil: "Casado/a",
-  profesion: "Marketing",
-  direccion: "Calle San Martín 567, Córdoba",
-  referente: "A",
-  copropietarios: [{ id: 1, nombre: "Bruno Maximiliano Valarolo", dni: "6767676767" }],
-},
+    id: 9003,
+    nombre: "Malany Anahi Almada ",
+    sexo: "F",
+    dni: "32444555",
+    cuil: "27324445551",
+    fecha_nacimiento: "2009-02-18",
+    telefono: "No se pero la amo",
+    mail: "MelyElAmorDeMiVida@gmail.com",
+    fecha_alta: "2026-02-20",
+    estado_civil: "Casado/a",
+    profesion: "Marketing",
+    direccion: "Calle San Martín 567, Córdoba",
+    referente: "A",
+    sucursal_nombre: "Rio Primero",
+    copropietarios: [{ id: 1, nombre: "Bruno Maximiliano Valarolo", dni: "6767676767" }],
+    bulbos: [],
+  },
 ];
 
 // ------------------------------------------------------------------
@@ -131,6 +138,39 @@ function leerDemoDeSession() {
 }
 
 // ------------------------------------------------------------------
+// FIX DE BUG (reportado): "al crear y modificar, las fechas y el estado
+// civil no se guardan". La causa era que en MODO DEMO se guardaba el
+// objeto del formulario tal cual llegaba (con claves en camelCase:
+// fechaNacimiento, fechaAlta, estadoCivil, sucursalNombre), pero el
+// resto de la app (perfil.js, app.js, exportar.js) siempre lee esos
+// mismos datos en snake_case (fecha_nacimiento, fecha_alta, estado_civil,
+// sucursal_nombre). El dato SÍ se guardaba, pero bajo una clave que
+// ningún otro archivo leía, así que en pantalla aparecía vacío.
+//
+// Esta función hace la misma conversión camelCase -> snake_case que ya
+// hacía el backend real (antes clientes.php, ahora el Worker), para que
+// el modo demo se comporte exactamente igual que con conexión real.
+// ------------------------------------------------------------------
+function mapearDatosClienteParaGuardar(datos) {
+  return {
+    nombre: datos.nombre || "",
+    sexo: datos.sexo || "M",
+    dni: datos.dni || "",
+    cuil: datos.cuil || "",
+    fecha_nacimiento: datos.fechaNacimiento || null,
+    telefono: datos.telefono || "",
+    mail: datos.mail || "",
+    fecha_alta: datos.fechaAlta || null,
+    estado_civil: datos.estadoCivil || "",
+    profesion: datos.profesion || "",
+    direccion: datos.direccion || "",
+    referente: datos.referente || "",
+    sucursal_nombre: datos.sucursalNombre || "Rio Primero",
+    copropietarios: (datos.copropietarios || []).map((co) => ({ nombre: co.nombre || "", dni: co.dni || "" })),
+  };
+}
+
+// ------------------------------------------------------------------
 // Historial: registra cada alta/edición/baja para mostrarla en historial.html
 // ------------------------------------------------------------------
 function registrarHistorial(accion, nombreCliente) {
@@ -141,7 +181,7 @@ function registrarHistorial(accion, nombreCliente) {
 }
 
 // ------------------------------------------------------------------
-// Comunicación con la API (fetch a clientes.php), con respaldo en modo demo
+// Comunicación con la API (fetch al Worker), con respaldo en modo demo
 // ------------------------------------------------------------------
 async function apiListar() {
   const res = await fetch(API_URL);
@@ -177,7 +217,9 @@ async function apiCrear(datos) {
   if (modoDemo) {
     const lista = leerDemoDeSession() || JSON.parse(JSON.stringify(MOCK_CLIENTES));
     const nuevoId = Math.max(0, ...lista.map((c) => c.id)) + 1;
-    lista.push({ id: nuevoId, ...datos });
+    // FIX: se convierte camelCase -> snake_case antes de guardar (ver
+    // mapearDatosClienteParaGuardar más arriba)
+    lista.push({ id: nuevoId, bulbos: [], ...mapearDatosClienteParaGuardar(datos) });
     guardarDemoEnSession(lista);
     registrarHistorial("alta", datos.nombre);
     return { ok: true, id: nuevoId };
@@ -196,7 +238,8 @@ async function apiActualizar(id, datos) {
   if (modoDemo) {
     const lista = leerDemoDeSession() || JSON.parse(JSON.stringify(MOCK_CLIENTES));
     const idx = lista.findIndex((c) => String(c.id) === String(id));
-    if (idx !== -1) lista[idx] = { ...lista[idx], ...datos, id: lista[idx].id };
+    // FIX: misma conversión camelCase -> snake_case que en apiCrear
+    if (idx !== -1) lista[idx] = { ...lista[idx], ...mapearDatosClienteParaGuardar(datos), id: lista[idx].id };
     guardarDemoEnSession(lista);
     registrarHistorial("edicion", datos.nombre);
     return { ok: true, id };
@@ -224,4 +267,82 @@ async function apiEliminar(id, nombreCliente = "") {
   const data = await res.json();
   registrarHistorial("baja", nombreCliente);
   return data;
+}
+
+// ------------------------------------------------------------------
+// Bulbos (NUEVO): ciclos/temporadas de bulbos de un cliente. Solo se usan
+// desde perfil.html (ver js/bulbos.js). En modo demo, se guardan dentro
+// del mismo cliente en sessionStorage (cliente.bulbos).
+// ------------------------------------------------------------------
+async function apiListarBulbos(idCliente) {
+  if (modoDemo) {
+    const lista = leerDemoDeSession() || MOCK_CLIENTES;
+    const cliente = lista.find((c) => String(c.id) === String(idCliente));
+    return (cliente && cliente.bulbos) || [];
+  }
+  const res = await fetch(`${BULBOS_URL}?clienteId=${idCliente}`);
+  if (!res.ok) throw new Error("No se pudieron obtener los ciclos de Bulbos");
+  return res.json();
+}
+
+// Recalcula el total igual que lo haría la base de datos (columna
+// generada), para que el modo demo se vea idéntico al modo real.
+function calcularTotalBulbo(d) {
+  return (
+    Number(d.calibre1 || 0) +
+    Number(d.calibre2 || 0) +
+    Number(d.calibre3 || 0) +
+    Number(d.calibre4 || 0) +
+    Number(d.cornos || 0)
+  );
+}
+
+async function apiCrearBulbo(datos) {
+  if (modoDemo) {
+    const lista = leerDemoDeSession() || JSON.parse(JSON.stringify(MOCK_CLIENTES));
+    const cliente = lista.find((c) => String(c.id) === String(datos.idCliente));
+    if (!cliente) throw new Error("Cliente de prueba no encontrado");
+    if (!cliente.bulbos) cliente.bulbos = [];
+    const nuevoId = Math.max(0, ...cliente.bulbos.map((b) => b.id)) + 1;
+    cliente.bulbos.unshift({ id: nuevoId, ...datos, total: calcularTotalBulbo(datos) });
+    guardarDemoEnSession(lista);
+    return { ok: true, id: nuevoId };
+  }
+  const res = await fetch(BULBOS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datos),
+  });
+  return res.json();
+}
+
+async function apiActualizarBulbo(id, idCliente, datos) {
+  if (modoDemo) {
+    const lista = leerDemoDeSession() || JSON.parse(JSON.stringify(MOCK_CLIENTES));
+    const cliente = lista.find((c) => String(c.id) === String(idCliente));
+    if (cliente && cliente.bulbos) {
+      const idx = cliente.bulbos.findIndex((b) => String(b.id) === String(id));
+      if (idx !== -1) cliente.bulbos[idx] = { ...cliente.bulbos[idx], ...datos, id, total: calcularTotalBulbo(datos) };
+    }
+    guardarDemoEnSession(lista);
+    return { ok: true };
+  }
+  const res = await fetch(`${BULBOS_URL}?id=${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datos),
+  });
+  return res.json();
+}
+
+async function apiEliminarBulbo(id, idCliente) {
+  if (modoDemo) {
+    const lista = leerDemoDeSession() || JSON.parse(JSON.stringify(MOCK_CLIENTES));
+    const cliente = lista.find((c) => String(c.id) === String(idCliente));
+    if (cliente && cliente.bulbos) cliente.bulbos = cliente.bulbos.filter((b) => String(b.id) !== String(id));
+    guardarDemoEnSession(lista);
+    return { ok: true };
+  }
+  const res = await fetch(`${BULBOS_URL}?id=${id}`, { method: "DELETE" });
+  return res.json();
 }

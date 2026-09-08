@@ -6,6 +6,15 @@
  * se le puede tocar el estilo, así que se arma un calendario a mano con
  * la estética de la página (mismos colores, tipografías e íconos).
  *
+ * CAMBIO IMPORTANTE (pedido del cliente): antes, TODO el bloque (texto +
+ * ícono) era un único <button>, así que tocar el texto también abría el
+ * calendario y no se podía tipear la fecha a mano. Ahora:
+ *   - El calendario emergente SOLO se abre/cierra tocando el ícono
+ *     (.custom-date__icon-btn).
+ *   - La fecha se puede escribir directamente con el teclado en el
+ *     <input class="custom-date__input">, con el formato dd/mm/aaaa
+ *     (se le van agregando las barras "/" solas mientras se escribe).
+ *
  * El valor real sigue viviendo en un <input type="date"> oculto con el
  * mismo id que antes tenía el input visible, así el resto del código
  * (formularios, filtros) sigue leyendo/escribiendo ".value" exactamente
@@ -24,12 +33,14 @@ const CustomDate = {
   DIAS_SEMANA: ["LU", "MA", "MI", "JU", "VI", "SA", "DO"],
 
   // Engancha los eventos de UN calendario puntual. Se puede volver a
-  // llamar sobre el mismo contenedor sin problema (usa ".onclick =").
+  // llamar sobre el mismo contenedor sin problema.
   init(container) {
-    const trigger = container.querySelector(".custom-date__trigger");
+    const campo = container.querySelector(".custom-date__field");
+    const input = container.querySelector(".custom-date__input");
+    const iconBtn = container.querySelector(".custom-date__icon-btn");
     const panel = container.querySelector(".custom-date__panel");
     const nativeInput = container.querySelector("input[type='date']");
-    if (!trigger || !panel || !nativeInput) return;
+    if (!campo || !input || !iconBtn || !panel || !nativeInput) return;
 
     // Mes que se está mostrando en el calendario: arranca en la fecha ya
     // elegida, o en el mes actual si todavía no hay ninguna
@@ -52,8 +63,7 @@ const CustomDate = {
         celda.onclick = (e) => {
           e.stopPropagation();
           this.setValue(container, celda.dataset.date);
-          panel.classList.add("hidden");
-          trigger.setAttribute("aria-expanded", "false");
+          this._cerrarPanel(container);
         };
       });
       panel.querySelector('[data-action="hoy"]').onclick = (e) => {
@@ -61,32 +71,95 @@ const CustomDate = {
         const hoyIso = new Date().toISOString().slice(0, 10);
         vista = new Date();
         this.setValue(container, hoyIso);
-        panel.classList.add("hidden");
-        trigger.setAttribute("aria-expanded", "false");
+        this._cerrarPanel(container);
       };
       panel.querySelector('[data-action="borrar"]').onclick = (e) => {
         e.stopPropagation();
         this.setValue(container, "");
-        panel.classList.add("hidden");
-        trigger.setAttribute("aria-expanded", "false");
+        this._cerrarPanel(container);
       };
     };
 
-    trigger.onclick = (e) => {
+    // Abre/cierra el calendario: SOLO el ícono hace esto (antes lo hacía
+    // todo el bloque, texto incluido)
+    iconBtn.onclick = (e) => {
       e.stopPropagation();
-      const yaEstabaAbierto = trigger.getAttribute("aria-expanded") === "true";
+      const yaEstabaAbierto = iconBtn.getAttribute("aria-expanded") === "true";
       // Cierra cualquier otro calendario/desplegable que haya quedado abierto
       document.querySelectorAll(".custom-date__panel").forEach((p) => p.classList.add("hidden"));
-      document.querySelectorAll(".custom-date__trigger").forEach((t) => t.setAttribute("aria-expanded", "false"));
+      document.querySelectorAll(".custom-date__icon-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+      document.querySelectorAll(".custom-date__field--abierto").forEach((f) => f.classList.remove("custom-date__field--abierto"));
       if (!yaEstabaAbierto) {
         vista = nativeInput.value ? new Date(nativeInput.value + "T00:00:00") : new Date();
         pintarPanel();
         panel.classList.remove("hidden");
-        trigger.setAttribute("aria-expanded", "true");
+        iconBtn.setAttribute("aria-expanded", "true");
+        campo.classList.add("custom-date__field--abierto");
+      }
+    };
+
+    // Escribir la fecha a mano: se le agregan las barras "/" solas
+    // (dd/mm/aaaa) y recién cuando están los 8 dígitos completos se valida
+    // como fecha real y se actualiza el <input type="date"> oculto.
+    input.oninput = () => {
+      const textoFormateado = this._formatearMientrasEscribe(input.value);
+      input.value = textoFormateado;
+      const iso = this._textoAIso(textoFormateado);
+      if (iso) {
+        // Fecha completa y válida: se actualiza el valor real (dispara
+        // "change" para que filtros/formularios reaccionen)
+        nativeInput.value = iso;
+        nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+      } else if (textoFormateado === "") {
+        nativeInput.value = "";
+        nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    };
+
+    // Al salir del campo, si quedó una fecha a medio escribir (o inválida,
+    // como 31/02), se descarta y se vuelve a mostrar el último valor válido
+    input.onblur = () => this._actualizarTexto(container);
+
+    // Enter también intenta confirmar la fecha tipeada (sin enviar el formulario)
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
       }
     };
 
     this._actualizarTexto(container);
+  },
+
+  _cerrarPanel(container) {
+    const panel = container.querySelector(".custom-date__panel");
+    const iconBtn = container.querySelector(".custom-date__icon-btn");
+    const campo = container.querySelector(".custom-date__field");
+    panel.classList.add("hidden");
+    iconBtn.setAttribute("aria-expanded", "false");
+    campo.classList.remove("custom-date__field--abierto");
+  },
+
+  // Mientras se escribe: deja solo dígitos y les inserta las barras "/"
+  // en las posiciones dd/mm/aaaa, hasta un máximo de 8 dígitos
+  _formatearMientrasEscribe(texto) {
+    const digitos = texto.replace(/\D/g, "").slice(0, 8);
+    let resultado = digitos;
+    if (digitos.length > 4) resultado = `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+    else if (digitos.length > 2) resultado = `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+    return resultado;
+  },
+
+  // Convierte "dd/mm/aaaa" a "aaaa-mm-dd" SOLO si es una fecha real
+  // (rechaza cosas como 31/02/2026, que "new Date" no siempre detecta sola)
+  _textoAIso(texto) {
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto);
+    if (!match) return null;
+    const [, dd, mm, aaaa] = match;
+    const dia = Number(dd), mes = Number(mm), anio = Number(aaaa);
+    const fecha = new Date(anio, mes - 1, dia);
+    const esValida = fecha.getFullYear() === anio && fecha.getMonth() === mes - 1 && fecha.getDate() === dia;
+    return esValida ? `${aaaa}-${mm}-${dd}` : null;
   },
 
   // Arma el HTML interno del calendario (mes, días de la semana, grilla
@@ -132,24 +205,23 @@ const CustomDate = {
     `;
   },
 
-  // Actualiza SOLO el texto/ícono visibles del disparador según el valor
-  // actual del <input type="date"> oculto (sin disparar "change")
+  // Actualiza SOLO el texto del <input> tipeable según el valor actual
+  // del <input type="date"> oculto (sin disparar "change")
   _actualizarTexto(container) {
     const nativeInput = container.querySelector("input[type='date']");
-    const textoEl = container.querySelector(".custom-date__trigger-text");
+    const input = container.querySelector(".custom-date__input");
     if (!nativeInput.value) {
-      textoEl.textContent = "dd/mm/aaaa";
-      textoEl.classList.add("custom-date__trigger-text--vacio");
+      input.value = "";
       return;
     }
     const [anio, mes, dia] = nativeInput.value.split("-");
-    textoEl.textContent = `${dia}/${mes}/${anio}`;
-    textoEl.classList.remove("custom-date__trigger-text--vacio");
+    input.value = `${dia}/${mes}/${anio}`;
   },
 
-  // Elige una fecha a mano: actualiza el <input> oculto, el texto visible
-  // y dispara "change" para que el resto del código (filtros, formularios)
-  // reaccione igual que con un <input type="date"> nativo
+  // Elige una fecha a mano (desde el calendario emergente): actualiza el
+  // <input> oculto, el texto tipeable y dispara "change" para que el
+  // resto del código (filtros, formularios) reaccione igual que con un
+  // <input type="date"> nativo
   setValue(container, iso) {
     const nativeInput = container.querySelector("input[type='date']");
     nativeInput.value = iso || "";
@@ -167,7 +239,7 @@ const CustomDate = {
     else nativeInput.value = iso || "";
   },
 
-  // Sincroniza SOLO el texto visible con el valor actual, sin disparar
+  // Sincroniza SOLO el texto tipeable con el valor actual, sin disparar
   // "change" (para usar después de un clientForm.reset(), que ya cambió
   // el <input> oculto por su cuenta)
   syncById(idInputOculto) {
@@ -179,10 +251,13 @@ const CustomDate = {
 };
 
 // Cierra cualquier calendario abierto si se hace clic en cualquier otro
-// lugar de la página
+// lugar de la página (los botones de DENTRO del calendario —ícono, días,
+// "Hoy", "Borrar"— ya frenan la propagación con e.stopPropagation() en
+// sus propios handlers, así que no hace falta nada más acá)
 document.addEventListener("click", () => {
   document.querySelectorAll(".custom-date__panel").forEach((p) => p.classList.add("hidden"));
-  document.querySelectorAll(".custom-date__trigger").forEach((t) => t.setAttribute("aria-expanded", "false"));
+  document.querySelectorAll(".custom-date__icon-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+  document.querySelectorAll(".custom-date__field--abierto").forEach((f) => f.classList.remove("custom-date__field--abierto"));
 });
 
 // Engancha automáticamente todos los calendarios presentes al cargar la página
