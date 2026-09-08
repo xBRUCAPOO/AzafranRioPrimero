@@ -8,4 +8,4 @@
  * Después de desplegar el Worker (ver worker/README-DEPLOY.md), pegar acá
  * la URL que imprime "wrangler deploy".
  */
-const API_BASE = "https://gestor-clientes-api.TU-USUARIO.workers.dev";
+const API_BASE = "https://gestor-clientes-api.brunovalarolo.workers.dev";
