@@ -154,9 +154,28 @@ async function manejarClientes(request, env, url) {
     // Lista completa (el filtrado por texto/sexo/estado civil ya lo hace
     // el frontend en memoria, ver js/app.js:getClientesFiltrados)
     const { results } = await env.DB.prepare("SELECT * FROM clientes ORDER BY nombre ASC").all();
-    for (const c of results) {
-      c.copropietarios = await obtenerCopropietarios(env, c.id);
+
+    // OPTIMIZACIÓN DE VELOCIDAD: antes acá había un "for" que hacía una
+    // consulta a la base POR CADA cliente para traerle sus copropietarios
+    // (si había 50 clientes, eran 50 consultas seguidas, una por una: el
+    // clásico problema "N+1"). Eso era lo que hacía que la lista tardara
+    // muchísimo. Ahora se trae TODOS los copropietarios en una única
+    // consulta y se agrupan acá mismo en memoria por id_cliente, así
+    // siempre son 2 consultas en total a la base, sin importar cuántos
+    // clientes haya.
+    const { results: todosCopropietarios } = await env.DB.prepare(
+      "SELECT id_copro AS id, nombre_apellido AS nombre, dni, id_cliente FROM copropietarios"
+    ).all();
+
+    const copropietariosPorCliente = {};
+    for (const co of todosCopropietarios) {
+      if (!copropietariosPorCliente[co.id_cliente]) copropietariosPorCliente[co.id_cliente] = [];
+      copropietariosPorCliente[co.id_cliente].push({ id: co.id, nombre: co.nombre, dni: co.dni });
     }
+    for (const c of results) {
+      c.copropietarios = copropietariosPorCliente[c.id] || [];
+    }
+
     return jsonResponse(results);
   }
 
